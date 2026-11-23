@@ -54,6 +54,10 @@ Cada jogador inicia com uma **cidade virtual em estágio degradado** e passa a r
 
 <!-- Vídeo de apresentação: arraste o arquivo apresentacao/ecocity-apresentacao-github-720p.mp4 diretamente nesta seção no editor web do GitHub para gerar o player nativo. -->
 
+
+https://github.com/user-attachments/assets/3102e83b-06c4-4a49-a206-5e4d2c666fe0
+
+
 <div align="center">
   <img src="apresentacao/ecocity-apresentacao-capa.png" alt="Capa do EcoCity mostrando a cidade antes e depois da recuperação ambiental" width="900">
   <p><em>Evolução da cidade: estágio inicial degradado até os quatro estágios recuperados.</em></p>
