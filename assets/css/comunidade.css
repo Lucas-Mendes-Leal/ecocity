@@ -1,0 +1,161 @@
+/* ==========================================================================
+   Aba Comunidade (RN61–RN68) — reaproveita .hero-band, .hero-stats, .chip,
+   .friend-*, .chat-*, .reward-chip e .cat-top-* de game.css.
+   ========================================================================== */
+
+#tab-comunidade .form-group label, .cm-modal .form-group label { display: block; font-size: 13px; font-weight: 600; }
+#tab-comunidade .form-group label > .form-input, .cm-modal .form-group label > .form-input { display: block; width: 100%; margin-top: 4px; font-weight: 400; }
+#tab-comunidade fieldset, .cm-modal fieldset { border: none; padding: 0; margin: 0; min-width: 0; }
+#tab-comunidade fieldset[disabled] { opacity: 0.55; }
+#tab-comunidade legend, .cm-modal legend { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+
+/* Emblema: ícone da área na cor da área */
+.cm-emblem {
+    --area: var(--primary-color); --area-bg: var(--green-soft);
+    width: 44px; height: 44px; flex: none; border-radius: 14px; display: inline-flex; align-items: center; justify-content: center;
+    background: var(--area-bg); color: var(--area); border: 2px solid var(--area);
+}
+.cm-emblem .icon { width: 24px; height: 24px; }
+.cm-hero-icon { width: 64px; height: 64px; border-radius: 18px; border: 3px solid #FFFFFF; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); }
+.cm-hero-icon .icon { width: 34px; height: 34px; }
+
+/* Faixa */
+.cm-hero { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; position: relative; z-index: 1; }
+.cm-hero-info { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 200px; font-size: 13px; }
+.cm-hero-info strong { font-size: 20px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; overflow-wrap: anywhere; }
+.cm-role { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; background: var(--accent-gold); color: #5D4300; border-radius: var(--radius-pill); padding: 2px 10px; }
+.cm-hero-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.cm-hero .hero-stats { flex-wrap: wrap; }
+
+/* Sem comunidade */
+.cm-cols { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; align-items: start; }
+.cm-side { display: flex; flex-direction: column; gap: 16px; }
+.cm-block { margin-bottom: 16px; }
+.cm-side .cm-block, .cm-cols > .cm-block { margin-bottom: 0; }
+.cm-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.cm-card { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px; border-radius: var(--radius-md); background: #F7F9F7; }
+.cm-card-info { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 180px; }
+.cm-card-info strong { font-size: 15px; overflow-wrap: anywhere; }
+.cm-card-info p { font-size: 13px; color: var(--text-color); overflow-wrap: anywhere; }
+.cm-card-info small { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; color: var(--text-muted); font-size: 12px; }
+.cm-card-info small .icon { width: 14px; height: 14px; }
+.cm-card-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+.cm-create { border-top: 4px solid var(--accent-gold); }
+.cm-create-hint { margin-bottom: 12px; }
+.cm-wait { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+.cm-wait .icon { width: 18px; height: 18px; flex: none; }
+.cm-reqs { list-style: none; display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.cm-reqs li { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: var(--radius-pill); background: var(--locked-bg); color: #455A64; }
+.cm-reqs li.is-ok { background: var(--success-bg); color: var(--success-fg); }
+.cm-reqs .icon { width: 14px; height: 14px; }
+.cm-emblems { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px !important; }
+.cm-emblem-opt { cursor: pointer; position: relative; }
+.cm-emblem-opt input { position: absolute; opacity: 0; pointer-events: none; }
+.cm-emblem-opt .cm-emblem { opacity: 0.55; transition: transform 0.15s, opacity 0.15s; }
+.cm-emblem-opt input:checked + .cm-emblem { opacity: 1; transform: scale(1.08); box-shadow: 0 0 0 3px var(--accent-gold); }
+.cm-emblem-opt input:focus-visible + .cm-emblem { outline: 3px solid var(--accent-gold); outline-offset: 2px; }
+.cm-entry { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px !important; font-size: 13px; }
+.cm-entry label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+
+/* Subabas */
+.cm-tabs { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
+.cm-tabs .chip { flex: none; }
+.cm-hint { margin: 0 0 14px; }
+.cm-section-title { display: flex; align-items: center; gap: 8px; font-size: 16px; color: var(--primary-color); margin: 18px 0 10px; }
+.cm-section-title .icon { width: 20px; height: 20px; }
+
+/* Mural */
+.cm-new-topic { margin-bottom: 14px; }
+.cm-topic-form, .cm-meta-form { margin-bottom: 16px; border: 2px solid var(--secondary-color); }
+.cm-meta-form { margin-top: 16px; }
+.cm-meta-form h4 { display: flex; align-items: center; gap: 6px; color: var(--primary-color); margin-bottom: 8px; }
+.cm-topics { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.cm-topic { display: flex; flex-direction: column; gap: 6px; position: relative; }
+.cm-topic.is-pinned { border-left: 5px solid var(--accent-gold); background: #FFFDF5; }
+.cm-pin { display: inline-flex; align-items: center; gap: 4px; align-self: flex-start; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #8D6E00; background: #FFF8E1; border-radius: var(--radius-pill); padding: 2px 10px; }
+.cm-pin .icon { width: 12px; height: 12px; fill: var(--accent-gold); color: var(--accent-gold); }
+.cm-topic h4 { font-size: 17px; color: var(--text-color); overflow-wrap: anywhere; }
+.cm-topic-meta { font-size: 12px; color: var(--text-muted); }
+.cm-topic-text { font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.cm-event { display: flex; gap: 8px; flex-wrap: wrap; }
+.cm-event span { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--text-green); background: var(--green-soft); border-radius: var(--radius-sm); padding: 6px 10px; overflow-wrap: anywhere; }
+.cm-event .icon { width: 16px; height: 16px; flex: none; }
+.cm-rsvp { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.cm-rsvp-who { font-size: 12px; color: var(--text-muted); }
+.cm-topic-actions { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+.cm-report { color: var(--error-fg); }
+
+/* Conversa em grupo */
+.cm-chat { display: flex; flex-direction: column; gap: 12px; }
+.cm-chat-author { display: block; font-size: 12px; font-weight: 700; margin-bottom: 1px; }
+.av-text-0 { color: var(--cat-recycling); }
+.av-text-1 { color: var(--cat-water); }
+.av-text-2 { color: var(--cat-energy); }
+.av-text-3 { color: var(--cat-nature); }
+
+/* Missões */
+.cm-week { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); }
+.cm-week .icon { width: 16px; height: 16px; flex: none; }
+.cm-missions { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.cm-mission { display: flex; flex-direction: column; gap: 10px; border-top: 5px solid var(--area); }
+.cm-mission.is-done { border-top-color: var(--accent-gold); background: #FFFDF5; }
+.cm-mission-head { display: flex; align-items: center; gap: 10px; }
+.cm-mission-head > div { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.cm-mission-head strong { font-size: 15px; overflow-wrap: anywhere; }
+.cm-mission-head small { font-size: 12px; color: var(--text-muted); }
+.cm-mission-icon { width: 40px; height: 40px; flex: none; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: var(--area-bg); color: var(--area); }
+.cm-mission-icon .icon { width: 22px; height: 22px; }
+.cm-done { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #5D4300; background: var(--accent-gold); border-radius: var(--radius-pill); padding: 3px 10px; white-space: nowrap; }
+.cm-done .icon { width: 12px; height: 12px; }
+.cm-mission-desc { font-size: 13px; }
+.cm-mission-progress { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.cm-mission-progress strong { font-size: 16px; color: var(--text-color); }
+.cm-mission-mine { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
+.cm-mission-mine .icon { width: 14px; height: 14px; color: var(--success-fg); flex: none; }
+.cm-mission-reward { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px; color: var(--text-muted); padding-top: 8px; border-top: 1px dashed var(--border-color); }
+.chip-points { background: var(--green-soft); color: var(--text-green); }
+.cm-mission-deadline { font-weight: 600; }
+
+/* Membros */
+.cm-members .friend-item.is-me { background: var(--green-soft); }
+.cm-role-tag { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; border-radius: 4px; padding: 1px 6px; vertical-align: middle; }
+.cm-role-lider { background: var(--accent-gold); color: #5D4300; }
+.cm-role-moderador { background: var(--green-soft-2); color: var(--text-green); }
+.cm-role-membro { background: var(--track); color: #455A64; }
+.cm-block .form-hint { display: block; margin-top: 10px; }
+
+/* Ranking */
+.cm-rank-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.cm-rank-head .card-title { margin: 0; }
+.cm-rank-head .conteudo-nav { margin: 0; }
+.cm-rank { list-style: none; display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.cm-rank-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--radius-md); background: #F7F9F7; }
+.cm-rank-row.is-mine { background: var(--green-soft); box-shadow: inset 0 0 0 2px var(--secondary-color); }
+.cm-rank-row .cm-emblem { width: 34px; height: 34px; border-radius: 10px; }
+.cm-rank-row .cm-emblem .icon { width: 18px; height: 18px; }
+.cm-rank-pos { width: 30px; height: 30px; flex: none; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; background: var(--track); color: #455A64; }
+.cm-rank-pos.top-1 { background: var(--accent-gold); color: #5D4300; }
+.cm-rank-pos.top-2 { background: #CFD8DC; color: #37474F; }
+.cm-rank-pos.top-3 { background: #E2B48A; color: #5D3A1A; }
+.cm-rank-name { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.cm-rank-name strong { font-size: 14px; overflow-wrap: anywhere; }
+.cm-rank-name small { font-size: 12px; color: var(--text-muted); }
+.cm-rank-pts { font-weight: 700; color: var(--primary-color); white-space: nowrap; }
+.cm-rank-gap { text-align: center; color: var(--text-muted); font-weight: 700; }
+
+/* Modal de configurações */
+.cm-modal { max-width: 480px; }
+.cm-modal .modal-actions { flex-wrap: wrap; }
+.cm-spacer { flex: 1; }
+
+@media (max-width: 1023px) {
+    .cm-cols { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 767px) {
+    .cm-hero .hero-stats div { flex: 1 1 40%; }
+    .cm-tabs .chip { min-height: 44px; }
+    .cm-card-actions { width: 100%; }
+    .cm-missions { grid-template-columns: minmax(0, 1fr); }
+    .cm-emblem-opt .cm-emblem { width: 48px; height: 48px; }
+}

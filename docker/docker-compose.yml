@@ -1,0 +1,144 @@
+# EcoCity — servidor na própria máquina, publicado pelo Cloudflare Tunnel.
+#   Testar só no computador:   docker compose up -d --build        → http://localhost:8080
+#   Com o túnel (internet):    docker compose --profile tunel up -d
+# Valores secretos ficam em docker/.env (modelo: .env.example). O banco não é exposto para fora.
+name: ecocity
+
+services:
+  web:
+    build: .
+    restart: unless-stopped
+    security_opt:
+      - "no-new-privileges:true"
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+      - SETUID
+      - SETGID
+      - CHOWN
+      - DAC_OVERRIDE
+    pids_limit: 200
+    mem_limit: 512m
+    environment:     # só o que o site usa (a senha root e o token não entram aqui)
+      TZ: America/Sao_Paulo
+      DB_NAME: ${DB_NAME:-ecocity}
+      DB_USER: ecocity_web            # perfil de operador, menor privilégio (database/projeto/08-seguranca.sql)
+      DB_PASSWORD: ${SENHA_WEB}
+      URL_BASE: ${URL_BASE:-http://localhost:8080}
+      DEBUG: ${DEBUG:-0}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORTA: ${SMTP_PORTA:-587}
+      SMTP_SEGURANCA: ${SMTP_SEGURANCA:-tls}
+      SMTP_USUARIO: ${SMTP_USUARIO:-}
+      SMTP_SENHA: ${SMTP_SENHA:-}
+      SMTP_REMETENTE: ${SMTP_REMETENTE:-}
+      SMTP_NOME: ${SMTP_NOME:-EcoCity}
+      IA_ATIVA: ${IA_ATIVA:-1}
+      IA_URL: ${IA_URL:-http://ollama:11434}
+      IA_MODELO: ${IA_MODELO:-qwen3-vl:8b-instruct}
+    tmpfs:
+      - /var/www/html/docker:ro,noexec,nosuid,size=1m
+      - /var/www/html/specs:ro,noexec,nosuid,size=1m
+      - "/var/www/html/referencia - site:ro,noexec,nosuid,size=1m"
+      - /var/www/html/apresentacao:ro,noexec,nosuid,size=1m
+      - /var/www/html/config:mode=0755,uid=0,gid=0,noexec,nosuid,size=1m
+      - /var/www/html/database:mode=0755,uid=0,gid=0,noexec,nosuid,size=1m
+      - /tmp:rw,noexec,nosuid,size=64m
+    volumes:
+      - ..:/var/www/html:ro
+      - ./config.docker.php:/var/www/html/config/config.local.php:ro
+      - ../database/projeto/gerar-quizzes-ia.php:/var/www/html/database/projeto/gerar-quizzes-ia.php:ro
+      - ../database/projeto/gerar-missoes-ia.php:/var/www/html/database/projeto/gerar-missoes-ia.php:ro
+      - ../uploads/evidencias:/var/www/html/uploads/evidencias:rw
+    ports:
+      - "127.0.0.1:8080:80"     # só este computador; a internet chega pelo túnel
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [edge-net, db-net, ia-net]
+
+  db:
+    image: mysql:8.0.40
+    restart: unless-stopped
+    security_opt:
+      - "no-new-privileges:true"
+    pids_limit: 256
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-ecocity}
+      MYSQL_USER: ${DB_USER:-ecocity}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?defina DB_PASSWORD no .env}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?defina DB_ROOT_PASSWORD no .env}
+      TZ: America/Sao_Paulo
+    command:
+      - --default-time-zone=-03:00
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --sql-mode=
+      - --binlog-expire-logs-seconds=1209600   # binlogs por 14 dias (backups incremental e diferencial)
+      - --slow-query-log=ON                    # monitoramento: consultas lentas
+      - --long-query-time=0.5
+      - --event-scheduler=ON                   # ev_manutencao_diaria (limpeza das tentativas abandonadas)
+      - --innodb-buffer-pool-size=384M
+      - --innodb-log-buffer-size=32M
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./init:/docker-entrypoint-initdb.d:ro   # só na primeira vez (banco vazio)
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    networks: [db-net]
+
+  # IA local (validação das fotos e quizzes a partir de notícias). Sem senha: nunca exposto à internet;
+  # o site chega por http://ollama:11434 e o Wamp por 127.0.0.1:11434 (só este computador).
+  ollama:
+    image: ollama/ollama:0.30.0
+    restart: unless-stopped
+    environment:
+      OLLAMA_KEEP_ALIVE: 30m        # mantém o modelo na GPU por 30 min depois do último uso
+      OLLAMA_NUM_PARALLEL: 1
+      OLLAMA_FLASH_ATTENTION: "1"
+      OLLAMA_KV_CACHE_TYPE: "q8_0"
+      OLLAMA_MAX_LOADED_MODELS: "1"
+      OLLAMA_LOAD_TIMEOUT: "10m"
+    volumes:
+      - ollama_dados:/root/.ollama
+    ports:
+      - "127.0.0.1:11434:11434"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    networks: [ia-net]
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    profiles: [tunel]
+    security_opt:
+      - "no-new-privileges:true"
+    cap_drop:
+      - ALL
+    read_only: true
+    pids_limit: 100
+    mem_limit: 256m
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}   # cole o token no .env
+    depends_on: [web]
+    networks: [edge-net]
+
+volumes:
+  db_data:
+  ollama_dados:
+
+networks:
+  edge-net:
+  db-net:
+    internal: true
+  ia-net:

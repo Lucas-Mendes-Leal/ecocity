@@ -1,0 +1,46 @@
+/* Relatório do meu impacto (relatorio.php, RN84) — tela e impressão (A4) */
+.relatorio-body { background: var(--bg-light, #F4F7F4); color: var(--text-color); }
+.relatorio-acoes { max-width: 820px; margin: 16px auto 0; padding: 0 16px; display: flex; justify-content: space-between; gap: 8px; }
+.relatorio { max-width: 820px; margin: 12px auto 32px; background: #FFFFFF; border-radius: var(--radius-lg); box-shadow: var(--shadow); padding: 32px; display: flex; flex-direction: column; gap: 24px; }
+.rel-topo { display: flex; align-items: center; gap: 20px; border-bottom: 3px solid var(--primary-color); padding-bottom: 16px; }
+.rel-logo { width: 120px; height: auto; }
+.rel-topo h1 { font-size: 24px; color: var(--text-green); }
+.rel-topo p { font-size: 14px; }
+.rel-muted { color: var(--text-muted); font-size: 12px; }
+.relatorio h2 { font-size: 17px; color: var(--primary-color); margin-bottom: 10px; }
+.rel-numeros { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.rel-numeros div { background: var(--green-soft); border-radius: var(--radius-md); padding: 12px; display: flex; flex-direction: column; }
+.rel-numeros strong { font-size: 24px; color: var(--text-green); }
+.rel-numeros span { font-size: 12px; color: var(--text-muted); }
+.rel-tabela { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 6px; }
+.rel-tabela th { text-align: left; background: #F8F9FA; color: var(--text-muted); padding: 8px 10px; }
+.rel-tabela td { padding: 8px 10px; border-bottom: 1px solid var(--border-color); vertical-align: top; }
+.rel-unidades-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.rel-comunidade-box {
+    background: var(--green-soft); border: 1px solid var(--green-frame); border-radius: var(--radius-md);
+    padding: 10px 14px; font-size: 13px; color: var(--text-green);
+}
+.rel-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; background: currentColor; }
+.rel-barras { list-style: none; display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+.rel-barras li { display: grid; grid-template-columns: 180px 1fr 40px; align-items: center; gap: 10px; }
+.rel-trilha { height: 10px; background: var(--track); border-radius: 5px; overflow: hidden; }
+.rel-barra { display: block; height: 100%; background: currentColor; }
+.rel-conquistas { columns: 2; font-size: 13px; padding-left: 18px; }
+.rel-rodape { border-top: 1px solid var(--border-color); padding-top: 12px; font-size: 12px; color: var(--text-muted); text-align: center; }
+
+@media (max-width: 600px) {
+    .relatorio { padding: 20px 16px; border-radius: 0; }
+    .rel-topo { flex-direction: column; align-items: flex-start; }
+    .rel-numeros { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .rel-barras li { grid-template-columns: 110px 1fr 32px; }
+    .rel-conquistas { columns: 1; }
+}
+
+@media print {
+    @page { size: A4; margin: 14mm; }
+    .relatorio-body { background: #FFFFFF; }
+    .relatorio-acoes { display: none; }
+    .relatorio { box-shadow: none; margin: 0; padding: 0; max-width: none; }
+    .relatorio section { break-inside: avoid; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

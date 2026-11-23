@@ -1,0 +1,2 @@
+# Arquivos internos do PHP não são acessados diretamente pela web.
+Require all denied

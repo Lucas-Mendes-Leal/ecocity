@@ -1,0 +1,214 @@
+/* ==========================================================================
+   EcoCity — Login e Cadastro
+   Fundo: cidade do jogo animada (auth-scene.js + animações de city.css).
+   Esquerda: logo, slogan e ciclo do jogo. Direita: card com abas.
+   ========================================================================== */
+
+.auth-body {
+    min-height: 100vh;
+    background: #1B5E20;   /* enquanto o cenário não aparece */
+    overflow-x: hidden;
+}
+
+/* Fundo animado + camada de contraste */
+.auth-scene, .auth-shade { position: fixed; inset: 0; pointer-events: none; }
+.auth-scene .city-svg { width: 100%; height: 100%; }
+.auth-shade {
+    background:
+        linear-gradient(90deg, rgba(14, 54, 20, 0.78) 0%, rgba(14, 54, 20, 0.45) 45%, rgba(14, 54, 20, 0.15) 100%),
+        linear-gradient(180deg, rgba(0, 0, 0, 0) 60%, rgba(14, 54, 20, 0.35) 100%);
+}
+
+.auth-layout {
+    position: relative; z-index: 1;
+    min-height: 100vh;
+    max-width: var(--content-width); margin: 0 auto;
+    padding: 32px 16px;
+    display: grid; grid-template-columns: 1fr minmax(320px, 440px);
+    align-items: center; gap: 48px;
+}
+
+/* --------------------------------------------------------------------------
+   Lado esquerdo: marca
+   -------------------------------------------------------------------------- */
+.auth-hero { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 18px; }
+.auth-logo {
+    width: min(340px, 80%); height: auto;
+    filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.35));
+    animation: logo-flutua 5s ease-in-out infinite;
+}
+@keyframes logo-flutua { 50% { transform: translateY(-8px); } }
+
+.auth-slogan {
+    color: #FFFFFF; font-size: 20px; font-weight: 700; line-height: 1.35;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
+    max-width: 420px;
+}
+
+.auth-cycle {
+    list-style: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+}
+.auth-cycle li {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(255, 255, 255, 0.94); color: var(--text-green);
+    padding: 6px 12px; border-radius: var(--radius-pill);
+    font-size: 13px; font-weight: 700;
+    box-shadow: 0 3px 0 rgba(0, 0, 0, 0.18);
+}
+.auth-cycle .icon { width: 16px; height: 16px; color: var(--primary-color); }
+
+/* --------------------------------------------------------------------------
+   Card
+   -------------------------------------------------------------------------- */
+.auth-card {
+    background: rgba(255, 255, 255, 0.97);
+    padding: 26px 30px 24px;
+    border-radius: var(--radius-lg);
+    border: 3px solid var(--secondary-color);
+    box-shadow: 0 8px 0 var(--primary-hover), 0 18px 40px rgba(0, 0, 0, 0.35);
+}
+
+/* Abas Entrar / Cadastrar (cada uma é uma página) */
+.auth-tabs {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+    background: var(--green-soft); padding: 5px; border-radius: var(--radius-md);
+    margin-bottom: 20px;
+}
+.auth-tab {
+    text-align: center; text-decoration: none;
+    padding: 9px 10px; border-radius: var(--radius-sm);
+    color: var(--text-green); font-weight: 700; font-size: 14px;
+    transition: background 0.2s, color 0.2s;
+}
+.auth-tab:hover { background: var(--green-soft-2); }
+.auth-tab.is-active {
+    background: var(--primary-color); color: #FFFFFF;
+    box-shadow: 0 3px 0 var(--primary-hover);
+}
+.auth-tab:focus-visible { outline: 3px solid var(--accent-gold); outline-offset: 2px; }
+
+/* Título no estilo de jogo: contorno branco + sombra verde */
+.auth-title {
+    color: var(--primary-color);
+    font-size: 27px; font-weight: 800; line-height: 1.15; letter-spacing: 0.2px;
+    text-shadow: 2px 2px 0 #FFFFFF, -1px -1px 0 #FFFFFF, 1px -1px 0 #FFFFFF, -1px 1px 0 #FFFFFF,
+                 0 4px 0 var(--green-soft-2);
+}
+.auth-subtitle { color: var(--text-muted); font-size: 13px; margin: 4px 0 16px; }
+
+/* Campos com ícone */
+.input-icon { position: relative; }
+.input-icon > [data-icon] {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    display: flex; color: var(--primary-color); pointer-events: none;
+}
+.input-icon .icon { width: 18px; height: 18px; }
+.input-icon .form-input { padding-left: 40px; }
+
+/* Botão principal de jogo: mais alto, com relevo que afunda ao clicar */
+.btn-game {
+    position: relative; overflow: hidden;
+    min-height: 50px; margin-top: 6px;
+    font-size: 16px; font-weight: 800; letter-spacing: 0.3px;
+    border-radius: var(--radius-md);
+    box-shadow: 0 5px 0 var(--primary-hover);
+    transition: transform 0.1s, box-shadow 0.1s, background 0.2s;
+}
+.btn-game::after {   /* brilho que atravessa o botão no hover */
+    content: ''; position: absolute; top: 0; bottom: 0; left: -60%; width: 40%;
+    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+    transform: skewX(-20deg);
+}
+.btn-game:hover::after { animation: brilho 0.8s ease-out; }
+@keyframes brilho { to { left: 130%; } }
+.btn-game:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 1px 0 var(--primary-hover); }
+
+.auth-forgot { text-align: right; font-size: 13px; margin: -6px 0 4px; }
+.auth-test-link { font-size: 13px; word-break: break-word; }
+
+.auth-footer { margin-top: 16px; text-align: center; font-size: 13px; color: var(--text-muted); }
+.auth-sobre { margin-top: 8px; font-size: 12px; }
+.auth-sobre a { display: inline-flex; align-items: center; gap: 4px; color: var(--text-muted); }
+.auth-sobre a:hover { color: var(--primary-color); }
+.auth-sobre .icon { width: 14px; height: 14px; }
+
+/* --------------------------------------------------------------------------
+   Página "Sobre o EcoCity" (sobre.php): uma coluna, card largo de leitura
+   -------------------------------------------------------------------------- */
+.auth-layout.is-sobre { grid-template-columns: 1fr; max-width: 900px; gap: 20px; align-content: start; }
+.is-sobre .auth-hero { gap: 10px; }
+.is-sobre .auth-logo { width: 170px; }
+.is-sobre .auth-cycle { display: none; }
+.is-sobre .auth-card { padding: 28px 34px; }
+.sobre-secao { margin-top: 22px; }
+.sobre-secao h2 { display: flex; align-items: center; gap: 8px; font-size: 18px; color: var(--primary-hover); margin-bottom: 8px; }
+.sobre-secao h2 .icon { width: 22px; height: 22px; color: var(--primary-color); }
+.sobre-secao p, .sobre-secao li { font-size: 15px; line-height: 1.6; color: var(--text-color); }
+.sobre-secao p + p { margin-top: 8px; }
+.sobre-ciclo { list-style: none; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+.sobre-ciclo li { background: var(--success-bg); border-radius: var(--radius-md); padding: 12px 10px; text-align: center; font-size: 13px; line-height: 1.4; }
+.sobre-ciclo strong { display: block; color: var(--primary-hover); font-size: 14px; margin: 4px 0 2px; }
+.sobre-ciclo .icon { width: 26px; height: 26px; color: var(--primary-color); }
+.sobre-lista { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 20px; margin-top: 8px; }
+.sobre-lista li { display: flex; gap: 8px; align-items: flex-start; }
+.sobre-lista .icon { width: 18px; height: 18px; flex: none; margin-top: 3px; color: var(--primary-color); }
+.sobre-equipe { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+.sobre-equipe li { background: var(--success-bg); border-radius: var(--radius-md); padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.sobre-membro-nome { color: var(--primary-hover); font-size: 15px; font-weight: 700; line-height: 1.35; }
+.sobre-membro-curso { color: var(--text-color); font-size: 13px; line-height: 1.45; }
+.sobre-membro-link { display: inline-flex; align-items: center; gap: 5px; margin-top: 4px; font-size: 13px; font-weight: 600; color: var(--primary-color); text-decoration: none; }
+.sobre-membro-link:hover { text-decoration: underline; }
+.sobre-acoes { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 26px; }
+.sobre-acoes .btn { min-width: 180px; }
+
+/* --------------------------------------------------------------------------
+   Responsividade
+   -------------------------------------------------------------------------- */
+@media (max-width: 899px) {
+    .auth-layout { grid-template-columns: 1fr; gap: 16px; padding: 20px 16px 32px; align-content: start; }
+    .auth-hero { gap: 8px; }
+    .auth-logo { width: 180px; }
+    .auth-slogan { font-size: 16px; }
+    .auth-cycle { display: none; }
+    .auth-card { width: 100%; max-width: 460px; justify-self: center; }
+    .auth-shade { background: rgba(14, 54, 20, 0.55); }
+}
+
+@media (max-width: 767px) {
+    .sobre-ciclo { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .sobre-lista { grid-template-columns: minmax(0, 1fr); }
+    .sobre-equipe { grid-template-columns: minmax(0, 1fr); }
+    .sobre-membro-link { min-height: 44px; padding: 6px 0; }
+    .is-sobre .auth-card { padding: 22px 18px; max-width: none; }
+    .sobre-acoes .btn { flex: 1 1 100%; min-height: 44px; }
+}
+
+@media (max-width: 480px) {
+    .auth-card { padding: 20px 18px; }
+    .auth-title { font-size: 23px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .auth-logo { animation: none; }
+    .btn-game::after { display: none; }
+    .btn-game { transition: none; }
+}
+
+/* ==========================================================================
+   Área do parceiro: cadastro (atividades) e validar.php (RN69–RN71)
+   ========================================================================== */
+/* Cadastro: atividades (fallback sem JS; seletor em base.css) */
+.partner-acts { border: none; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.partner-acts legend { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+.partner-acts .act-picker-fallback { display: flex; flex-direction: column; gap: 2px; }
+.partner-acts .check-line { margin: 2px 0; }
+
+/* validar.php */
+.validate-box { display: flex; flex-direction: column; gap: 12px; }
+.validate-partner { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: var(--radius-md); background: var(--green-soft); }
+.validate-partner strong { font-size: 17px; color: var(--text-green); }
+.validate-partner span { font-size: 13px; color: var(--text-muted); }
+.validate-what { font-size: 16px; }
+.validate-what strong { font-size: 20px; }
+.validate-gain { font-size: 14px; font-weight: 600; color: var(--text-green); }
+

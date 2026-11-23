@@ -1,0 +1,3 @@
+# Fotos de evidência de até 5 MB (limite validado também em includes/registros.php)
+php_value upload_max_filesize 6M
+php_value post_max_size 8M

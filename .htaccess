@@ -1,0 +1,6 @@
+# Proteção de arquivos internos e listagem no Apache local (WampServer e Docker)
+Options -Indexes
+
+<FilesMatch "(?i)(^\.|\.(md|sql|py|yml|yaml|env|ini|log|ps1|sh|bat|bak|old|tmp|swp|example)$)">
+    Require all denied
+</FilesMatch>

@@ -1,0 +1,41 @@
+{
+    "id": "./",
+    "name": "EcoCity — Educação Ambiental Gamificada",
+    "short_name": "EcoCity",
+    "description": "Cuide da sua cidade virtual aprendendo e praticando ações sustentáveis reais.",
+    "lang": "pt-BR",
+    "dir": "ltr",
+    "start_url": "./",
+    "scope": "./",
+    "display": "standalone",
+    "orientation": "any",
+    "theme_color": "#2E7D32",
+    "background_color": "#1B5E20",
+    "categories": ["education", "games"],
+    "icons": [
+        {
+            "src": "assets/img/logo-ecocity-icone.png",
+            "sizes": "64x64",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "assets/img/icone-pwa-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "assets/img/icone-pwa-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "assets/img/icone-pwa-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}

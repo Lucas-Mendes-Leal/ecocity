@@ -1,0 +1,2 @@
+# Bibliotecas (PHPMailer) são incluídas pelo PHP e nunca servidas pela web.
+Require all denied

@@ -1,0 +1,2 @@
+# Arquivos de infraestrutura Docker nunca são servidos pela web.
+Require all denied

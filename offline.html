@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2E7D32">
+    <title>Sem conexão — EcoCity</title>
+    <link rel="icon" type="image/png" href="assets/img/logo-ecocity-icone.png">
+    <link rel="stylesheet" href="assets/css/base.css">
+</head>
+<body class="offline-body">
+    <main class="offline-card" role="main">
+        <img class="offline-logo" src="assets/img/logo-ecocity.png" alt="EcoCity" width="160" height="170">
+        <h1>Você está sem conexão</h1>
+        <p>O EcoCity precisa de conexão com o servidor para validar suas ações, quizzes e progresso da cidade em tempo real.</p>
+        <p class="muted">Assim que a internet voltar, a página recarregará automaticamente ou você pode tocar no botão abaixo.</p>
+        <div class="offline-actions">
+            <a href="./" class="btn btn-primary btn-block" id="offline-retry">Tentar novamente</a>
+        </div>
+    </main>
+    <script src="assets/js/offline.js" defer></script>
+</body>
+</html>

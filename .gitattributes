@@ -1,0 +1,2 @@
+# Guardar os arquivos exatamente como estão (sem trocar LF/CRLF), para o Docker e o Wamp não verem diferença
+* -text
