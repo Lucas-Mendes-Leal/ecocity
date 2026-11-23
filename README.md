@@ -1,7 +1,5 @@
 
 
-https://github.com/user-attachments/assets/9b907131-613c-4de9-b98b-5c569a7110f1
-
 <div align="center">
   <img src="assets/img/logo-ecocity.png" alt="Logotipo oficial do EcoCity" width="180">
   <h1>EcoCity</h1>
