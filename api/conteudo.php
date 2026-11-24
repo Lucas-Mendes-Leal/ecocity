@@ -116,7 +116,7 @@ try {
         case 'gerar_ia':
             $exigirPerm('conteudo_catalogo');
             // Leva alguns minutos (mais do que o túnel espera): responde já e continua em segundo plano.
-            if (!ia_disponivel()) throw new RegistroInvalido('A IA não está disponível agora. Confira se o serviço Ollama está ligado.');
+            if (!ia_disponivel()) throw new RegistroInvalido('A IA não está disponível no momento. Tente novamente em instantes.');
             if ((int) db()->query("SELECT IS_FREE_LOCK('ecocity_quizzes_ia')")->fetchColumn() !== 1) {
                 throw new RegistroInvalido('Já existe uma geração de quizzes em andamento.');
             }
@@ -177,7 +177,7 @@ try {
                     throw new RegistroInvalido('Descreva a estrutura que deseja gerar (de 3 a 400 caracteres) ou envie uma imagem de referência.');
                 }
                 if (!ia_disponivel()) {
-                    throw new RegistroInvalido('A IA local (Ollama) não está disponível no momento. Verifique se o serviço está ligado.');
+                    throw new RegistroInvalido('A IA não está disponível no momento. Tente novamente em instantes.');
                 }
 
                 // Copia uploads antes de encerrar a resposta HTTP; is_file() continua válido em segundo plano

@@ -210,7 +210,7 @@ function ia_conferir_perguntas(array $perguntas, string $textos): array
  */
 function gerar_quizzes_ia(): array
 {
-    if (!ia_disponivel()) throw new RegistroInvalido('A IA não está disponível agora. Confira se o serviço Ollama está ligado.');
+    if (!ia_disponivel()) throw new RegistroInvalido('A IA não está disponível no momento. Tente novamente em instantes.');
     $pdo = db();
     if ((int) $pdo->query("SELECT GET_LOCK('ecocity_quizzes_ia', 0)")->fetchColumn() !== 1) {
         throw new RegistroInvalido('Já existe uma geração de quizzes em andamento.');

@@ -113,7 +113,7 @@ function gerar_missoes_ia(string $escopo = 'todas', bool $pularSeJaGerou = false
         throw new RegistroInvalido('Escopo inválido para geração de missões.');
     }
     if (!ia_disponivel()) {
-        throw new RegistroInvalido('A IA não está disponível agora. Confira se o serviço Ollama está ligado.');
+        throw new RegistroInvalido('A IA não está disponível no momento. Tente novamente em instantes.');
     }
 
     $pdo = db();

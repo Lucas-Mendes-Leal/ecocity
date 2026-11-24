@@ -230,7 +230,7 @@ function gerar_estrutura_ia(
         throw new RegistroInvalido('Descreva a estrutura que deseja gerar (de 3 a 400 caracteres) ou envie uma imagem de referência.');
     }
     if (!ia_disponivel()) {
-        throw new RegistroInvalido('A IA local (Ollama) não está disponível no momento. Verifique se o serviço está ligado.');
+        throw new RegistroInvalido('A IA não está disponível no momento. Tente novamente em instantes.');
     }
 
     $modeloGerador = ia_modelo_estruturas();
@@ -283,7 +283,7 @@ function gerar_estrutura_ia(
         try {
             $resp = ia_chamar($sistema, $pedido, $imagensParaGerador, IA_ESQUEMA_GEOMETRIA_3D, 180, $modeloGerador, 8192);
         } catch (IaIndisponivel $ex) {
-            throw new RegistroInvalido('Não foi possível falar com a IA local: ' . $ex->getMessage());
+            throw new RegistroInvalido('Não foi possível falar com a IA: ' . $ex->getMessage());
         }
         if (!is_array($resp['dados'])) {
             throw new RegistroInvalido('A IA não retornou um desenho válido. Tente detalhar melhor o pedido.');
@@ -316,7 +316,7 @@ function gerar_estrutura_ia(
     try {
         $resp = ia_chamar($sistema, $pedido, $imagensParaGerador, IA_ESQUEMA_ESTRUTURA_COMPLETA, 180, $modeloGerador, 8192);
     } catch (IaIndisponivel $ex) {
-        throw new RegistroInvalido('Não foi possível falar com a IA local: ' . $ex->getMessage());
+        throw new RegistroInvalido('Não foi possível falar com a IA: ' . $ex->getMessage());
     }
     $d = $resp['dados'];
     if (!is_array($d) || !is_array($d['cena'] ?? null)) {

@@ -282,7 +282,7 @@ function editorDesenhoIA(e) {
             : '<span class="tag tag-neutral">Desenho personalizado</span>';
 
     return `<fieldset class="desenho-editor ia-estrutura-editor">
-        <legend>Criar ou ajustar estrutura com IA local (Ollama) ${rotuloOrigem}</legend>
+        <legend>Criar ou ajustar estrutura com IA ${rotuloOrigem}</legend>
         <input type="hidden" name="desenho" value="${escapeHTML(desenho)}">
         <div class="ia-prompt-bloco">
             <label for="ia-estrutura-prompt" class="form-label">Descreva a estrutura ou o ajuste visual que deseja</label>
@@ -298,13 +298,13 @@ function editorDesenhoIA(e) {
                 </div>
             </div>
             <div class="ia-prompt-acoes">
-                <button type="button" class="btn btn-primary btn-sm" data-ia-estrutura="tudo" ${iaOk ? '' : 'disabled title="IA local (Ollama) indisponível no momento"'}>
+                <button type="button" class="btn btn-primary btn-sm" data-ia-estrutura="tudo" ${iaOk ? '' : 'disabled title="IA indisponível no momento"'}>
                     ${icon('star')} Gerar tudo com IA (campos + desenho)
                 </button>
-                <button type="button" class="btn btn-outline btn-sm" data-ia-estrutura="desenho" ${iaOk ? '' : 'disabled title="IA local (Ollama) indisponível no momento"'}>
+                <button type="button" class="btn btn-outline btn-sm" data-ia-estrutura="desenho" ${iaOk ? '' : 'disabled title="IA indisponível no momento"'}>
                     ${icon('image')} ${temDesenhoIA ? 'Ajustar só o desenho com IA' : 'Gerar só o desenho com IA'}
                 </button>
-                <span class="form-hint ia-status-msg" id="ia-estrutura-status">${iaOk ? 'A IA modela a geometria 3D isométrica do zero (ou a partir da sua foto). Depois você pode editar qualquer campo.' : 'O serviço Ollama local está desligado no momento.'}</span>
+                <span class="form-hint ia-status-msg" id="ia-estrutura-status">${iaOk ? 'A IA modela a geometria 3D isométrica do zero (ou a partir da sua foto). Depois você pode editar qualquer campo.' : 'O serviço de IA está indisponível no momento.'}</span>
             </div>
         </div>
         <div class="previa-topo">
@@ -1154,7 +1154,7 @@ function ligarEventos() {
             const botoesIa = [...form.querySelectorAll('[data-ia-estrutura]')];
             const statusEl = form.querySelector('#ia-estrutura-status');
             botoesIa.forEach((btn) => { btn.disabled = true; });
-            if (statusEl) statusEl.textContent = arquivoFoto ? 'Analisando a imagem de referência e modelando em 3D com a IA local…' : 'Modelando a estrutura 3D com a IA local (Ollama)… aguarde alguns segundos.';
+            if (statusEl) statusEl.textContent = arquivoFoto ? 'Analisando a imagem de referência e modelando em 3D com a IA…' : 'Modelando a estrutura 3D com a IA… aguarde alguns segundos.';
             const contexto = {
                 nome: form.querySelector('[name="nome"]')?.value || '',
                 largura: Number(form.querySelector('[name="largura"]')?.value) || 3,
@@ -1176,7 +1176,7 @@ function ligarEventos() {
                         for (let tent = 0; tent < 120; tent++) {
                             await new Promise((resolve) => setTimeout(resolve, 2500));
                             const seg = Math.max(1, Math.round((Date.now() - tIni) / 1000));
-                            if (statusEl) statusEl.textContent = `Modelando a estrutura 3D com a IA local… (${seg}s)`;
+                            if (statusEl) statusEl.textContent = `Modelando a estrutura 3D com a IA… (${seg}s)`;
                             const poll = await api({ acao: 'gerar_estrutura_ia_status', job_id: r.jobId });
                             if (poll.status !== 'processando') {
                                 finalResp = poll;
