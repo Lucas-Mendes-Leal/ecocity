@@ -213,6 +213,18 @@ textarea.form-input { resize: vertical; min-height: 84px; }
 .g-eixo-y { text-anchor: end; }
 .g-valor { font-size: 12px; font-weight: 700; fill: var(--text-color); text-anchor: middle; }
 .g-linha { fill: none; stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
+.g-ponto { transition: r 0.14s ease, stroke-width 0.14s ease; pointer-events: none; }
+.g-hit { fill: transparent; cursor: pointer; outline: none; }
+.g-ponto-grupo.is-active .g-ponto, .g-ponto-grupo:has(.g-hit:focus-visible) .g-ponto { r: 6.5; stroke: #FFFFFF; stroke-width: 2.5; filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.28)); }
+.g-barra { cursor: pointer; transition: opacity 0.14s ease; outline: none; }
+.g-barra.is-active, .g-barra:focus-visible { opacity: 0.82; }
+.g-tooltip { position: fixed; z-index: 9999; pointer-events: none; background: #1B2B22; color: #FFFFFF; padding: 8px 12px; border-radius: 8px; box-shadow: 0 6px 18px rgba(15, 23, 42, 0.24); font-size: 12px; line-height: 1.4; white-space: normal; max-width: 340px; border: 1px solid rgba(255, 255, 255, 0.14); }
+.g-tooltip[hidden] { display: none !important; }
+.g-tip-data { font-size: 11px; font-weight: 700; color: #A7F3D0; }
+.g-tip-linha { display: flex; align-items: baseline; gap: 6px; margin-top: 2px; flex-wrap: wrap; }
+.g-tip-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; align-self: center; }
+.g-tip-serie { color: #E2E8F0; }
+.g-tip-val { font-weight: 700; color: #FFFFFF; }
 .g-legenda { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 8px; font-size: 12px; color: var(--text-muted); }
 .g-legenda span { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
 .g-anel { width: 64px; height: 64px; }

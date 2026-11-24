@@ -396,14 +396,17 @@ function renderGraficoImpactoSustentavel(ev) {
     }).join('');
 
     const graficoHtml = modoGraficoImpacto === 'acumulado'
-        ? linhas(rot, [{ nome: `${atual.unidade} (acumulado)`, cor, valores: atual.acumulado }], {
+        ? linhas(rot, [{ nome: nomeCompletoCat(atual.categoria), cor, valores: atual.acumulado }], {
             max: null,
             sufixo: '',
+            sufixoTooltip: ` ${atual.unidade}`,
             titulo: `Evolução acumulada de ${atual.unidade}`,
             vazio: 'Registre ações desta área para ver a curva de evolução.',
         })
         : colunas(rot, atual.semanal, {
             cor,
+            sufixoTooltip: ` ${atual.unidade}`,
+            serie: nomeCompletoCat(atual.categoria),
             titulo: `Impacto por semana em ${atual.unidade}`,
         });
 
