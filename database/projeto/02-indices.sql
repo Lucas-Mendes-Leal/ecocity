@@ -34,5 +34,9 @@ ALTER TABLE registro_atividade ADD KEY ix_registro_jogador_status_data (jogador_
 ALTER TABLE tentativa_quiz ADD KEY ix_tentativa_jogador_data (jogador_id, data);
 -- Histórico e relatórios de códigos utilizados por parceiro (migração 045): WHERE parceiro_id = ? AND usado_em IS NOT NULL ORDER BY usado_em DESC
 ALTER TABLE codigo_parceiro ADD KEY ix_codigo_parceiro_usado (parceiro_id, usado_em);
+-- Ativação automática agendada de conteúdos gerados pela IA (migração 046): WHERE ativa = FALSE AND ativar_em IS NOT NULL AND ativar_em <= NOW()
+ALTER TABLE quiz ADD KEY ix_quiz_ativar_em (ativa, ativar_em);
+ALTER TABLE missao ADD KEY ix_missao_ativar_em (ativa, ativar_em);
+ALTER TABLE comunidade_missao ADD KEY ix_cmissao_ativar_em (ativa, ativar_em);
 
 

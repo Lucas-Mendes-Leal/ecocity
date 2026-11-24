@@ -575,9 +575,12 @@ function listaConteudo(tipo) {
                 ? `${it.situacao}${it.usado ? ' usado' : ''}`
                 : `${it.ativa ? 'ativo' : 'desativado'}${it.usado ? ' usado' : ''}${it.origem === 'ia' ? ' ia' : ''}${it.origem === 'ia' && !it.ativa && !it.usado ? ' rascunho' : ''}`;
             const buscaTxt = `${it.codigo || ''} ${it.nome || it.titulo || ''} ${it.descricao || ''}`;
+            const agTag = !it.ativa && it.ativarEm
+                ? ` <span class="tag tag-warning" title="Ativação automática agendada pela política da IA">Ativa em ${escapeHTML(fmtDataHoraBR(it.ativarEm))}</span>`
+                : '';
             return `<tr class="${it.ativa ? '' : 'is-off'}" data-busca="${escapeHTML(buscaTxt)}" data-filtro="${filtroAttr}">
             ${COLUNAS[tipo].map(([, f]) => `<td>${f(it)}</td>`).join('')}
-            <td>${sitTag}${it.usado ? ' <span class="tag tag-warning" title="Usado por jogadores">Em uso</span>' : ''}</td>
+            <td>${sitTag}${agTag}${it.usado ? ' <span class="tag tag-warning" title="Usado por jogadores">Em uso</span>' : ''}</td>
             <td class="acoes">
                 <button type="button" class="btn btn-outline btn-sm" data-editar="${it.id}">Editar</button>
                 <button type="button" class="btn btn-outline btn-sm" data-ativo="${it.id}" data-valor="${it.ativa ? 0 : 1}">${it.ativa ? 'Desativar' : 'Ativar'}</button>
@@ -1009,6 +1012,7 @@ function render() {
                 ${!SO_LISTA.includes(secao) && !st.editando ? `<button type="button" class="btn btn-primary btn-sm" data-novo>${icon('gift')} ${NOVO[secao]}</button>` : ''}
                 </div>
             </div>
+            ${barraPoliticaIa(secao)}
             ${secao === 'conta' ? listaContas() : secao === 'comunidade' ? listaComunidades() : secao === 'auditoria' ? '<div id="auditoria-app"><p class="empty-state">Carregando registros de auditoria…</p></div>' : listaConteudo(secao)}
         </div>`;
     hydrateIcons(st.raiz);
@@ -1067,14 +1071,61 @@ async function executar(fn) {
     }
 }
 
+const TITULO_TIPO_IA = {
+    quiz: 'Quizzes',
+    missao: 'Missões semanais',
+    cmissao: 'Missões de comunidade',
+};
+
+const politicaIaTipo = (tipo) => st.dados?.iaConfigPublicacao?.[tipo] || { modo: 'manual', horas: 24 };
+
+function rotuloHorasIa(horas) {
+    const h = Number(horas) || 24;
+    if (h === 24) return '24h (1 dia)';
+    if (h === 48) return '48h (2 dias)';
+    if (h === 72) return '72h (3 dias)';
+    return `${h}h`;
+}
+
+function textoPoliticaIa(cfg) {
+    const modo = cfg?.modo || 'manual';
+    if (modo === 'imediato') return 'Ativo na hora (sem revisão prévia)';
+    if (modo === 'agendado') return `Rascunho por ${rotuloHorasIa(cfg?.horas)} (depois ativa automaticamente)`;
+    return 'Manual (desativado até um administrador ativar)';
+}
+
+function textoDicaPoliticaIa(cfg) {
+    const modo = cfg?.modo || 'manual';
+    if (modo === 'imediato') {
+        return 'Regra atual: os itens gerados já entram ativos e visíveis no jogo automaticamente.';
+    }
+    if (modo === 'agendado') {
+        return `Regra atual: os itens nascem desativados para revisão e são ativados automaticamente após ${rotuloHorasIa(cfg?.horas)}.`;
+    }
+    return 'Regra atual: os itens nascem desativados e só aparecem no jogo após ativação manual.';
+}
+
+function barraPoliticaIa(secao) {
+    if (!['quiz', 'missao', 'cmissao'].includes(secao) || st.editando) return '';
+    const cfg = politicaIaTipo(secao);
+    const pronto = st.dados?.iaConfigPronto !== false;
+    return `<div class="ia-pub-barra" data-ia-pub-barra="${secao}">
+        <div class="ia-pub-barra-info">
+            ${icon('calendar')}
+            <span><strong>Publicação da IA:</strong> ${escapeHTML(textoPoliticaIa(cfg))}</span>
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" data-config-ia="${secao}" ${pronto ? '' : 'disabled title="Aplique a migração 046 antes"'}>Configurar publicação</button>
+    </div>`;
+}
+
 const CFG_GERAR_IA = {
     quiz: {
         titulo: 'Gerar quizzes com IA',
         icone: 'help',
         autoTitulo: 'Gerar automaticamente',
-        autoDesc: 'A IA lê notícias ambientais recentes (últimos 14 dias) e cria até 3 quizzes como rascunho (desativados), em segundo plano (5 a 15 minutos).',
+        autoDesc: 'A IA lê notícias ambientais recentes (últimos 14 dias) e cria até 3 quizzes em segundo plano (5 a 15 minutos).',
         temaTitulo: 'Sugerir um tema',
-        temaDesc: 'A IA cria 1 quiz como rascunho (desativado) focado no tema informado abaixo, também em segundo plano.',
+        temaDesc: 'A IA cria 1 quiz focado no tema informado abaixo, também em segundo plano.',
         temaPlaceholder: 'Ex.: Economia circular, enchentes urbanas, energia solar…',
         temArea: true,
         btnCarregando: 'Iniciando…',
@@ -1083,9 +1134,9 @@ const CFG_GERAR_IA = {
         titulo: 'Gerar missões com IA',
         icone: 'clipboard',
         autoTitulo: 'Gerar automaticamente',
-        autoDesc: 'A IA cria 2 missões semanais variadas como rascunho (desativadas) para esta semana, combinando atividades do catálogo.',
+        autoDesc: 'A IA cria 2 missões semanais variadas para esta semana combinando atividades do catálogo.',
         temaTitulo: 'Sugerir um tema',
-        temaDesc: 'A IA cria 2 missões semanais como rascunho priorizando atividades ligadas ao tema sugerido.',
+        temaDesc: 'A IA cria 2 missões semanais priorizando atividades ligadas ao tema sugerido.',
         temaPlaceholder: 'Ex.: Economia de água, reciclagem em casa, transporte sustentável…',
         temArea: false,
         btnCarregando: 'Gerando…',
@@ -1094,28 +1145,115 @@ const CFG_GERAR_IA = {
         titulo: 'Gerar missão de comunidade com IA',
         icone: 'flag',
         autoTitulo: 'Gerar automaticamente',
-        autoDesc: 'A IA cria 1 missão coletiva oficial como rascunho (desativada) para a semana atual, variando em relação às recentes.',
+        autoDesc: 'A IA cria 1 missão coletiva oficial para a semana atual, variando em relação às recentes.',
         temaTitulo: 'Sugerir um tema',
-        temaDesc: 'A IA cria 1 missão coletiva oficial como rascunho alinhada ao tema informado abaixo.',
+        temaDesc: 'A IA cria 1 missão coletiva oficial alinhada ao tema informado abaixo.',
         temaPlaceholder: 'Ex.: Mutirão de reciclagem, redução do consumo de energia…',
         temArea: false,
         btnCarregando: 'Gerando…',
     },
 };
 
+function criarDialogIa(classeExtra, tituloId, html, radioName, onRadioChange) {
+    document.querySelectorAll('dialog.ia-gen-dialog').forEach((el) => el.remove());
+    const dialog = document.createElement('dialog');
+    dialog.className = classeExtra ? `ia-gen-dialog ${classeExtra}` : 'ia-gen-dialog';
+    dialog.setAttribute('aria-labelledby', tituloId);
+    dialog.innerHTML = html;
+    document.body.appendChild(dialog);
+    hydrateIcons(dialog);
+
+    const form = dialog.querySelector('form');
+    const cards = Array.from(dialog.querySelectorAll('.ia-gen-opcao'));
+    const atualizarCards = () => {
+        cards.forEach((c) => c.classList.toggle('is-selected', c.querySelector('input')?.checked));
+        if (onRadioChange) onRadioChange(form.elements[radioName]?.value || '');
+    };
+    form.querySelectorAll(`input[name="${radioName}"]`).forEach((r) => r.addEventListener('change', atualizarCards));
+    dialog.querySelector('[data-ia-fechar]')?.addEventListener('click', () => dialog.close());
+    dialog.querySelector('[data-ia-cancelar]')?.addEventListener('click', () => dialog.close());
+    dialog.addEventListener('click', (ev) => {
+        if (ev.target === dialog) dialog.close();
+    });
+    dialog.addEventListener('close', () => dialog.remove());
+    return { dialog, form };
+}
+
+function abrirModalConfigIa(tipo) {
+    const nomeSecao = TITULO_TIPO_IA[tipo];
+    if (!nomeSecao) return;
+    const atual = politicaIaTipo(tipo);
+    const opcoesHoras = (st.dados?.iaHorasOpcoes?.length ? st.dados.iaHorasOpcoes : [6, 12, 24, 48, 72])
+        .map((h) => [h, rotuloHorasIa(h)]);
+
+    const { dialog, form } = criarDialogIa('ia-cfg-dialog', 'ia-cfg-titulo', `<form class="ia-gen-form" method="dialog" novalidate>
+        <div class="ia-gen-topo">
+            <h4 id="ia-cfg-titulo">Publicação da IA · ${escapeHTML(nomeSecao)}</h4>
+            <button type="button" class="ia-gen-fechar" aria-label="Fechar" data-ia-fechar>×</button>
+        </div>
+        <p class="ia-gen-politica-dica">Define se os novos itens gerados pela IA nesta seção precisam de revisão antes de aparecer aos jogadores.</p>
+        <div class="ia-gen-opcoes">
+            <label class="ia-gen-opcao ${atual.modo === 'manual' ? 'is-selected' : ''}">
+                <input type="radio" name="modo_pub" value="manual" ${atual.modo === 'manual' ? 'checked' : ''}>
+                <div class="ia-gen-opcao-txt">
+                    <strong>Manual (revisar antes de ativar)</strong>
+                    <small>Os itens nascem desativados e só entram no jogo quando um administrador ativar.</small>
+                </div>
+            </label>
+            <label class="ia-gen-opcao ${atual.modo === 'imediato' ? 'is-selected' : ''}">
+                <input type="radio" name="modo_pub" value="imediato" ${atual.modo === 'imediato' ? 'checked' : ''}>
+                <div class="ia-gen-opcao-txt">
+                    <strong>Ativar na hora</strong>
+                    <small>Os itens já entram ativos e visíveis no jogo assim que a IA termina de gerar.</small>
+                </div>
+            </label>
+            <label class="ia-gen-opcao ${atual.modo === 'agendado' ? 'is-selected' : ''}">
+                <input type="radio" name="modo_pub" value="agendado" ${atual.modo === 'agendado' ? 'checked' : ''}>
+                <div class="ia-gen-opcao-txt">
+                    <strong>Ativar após carência</strong>
+                    <small>Nascem desativados para revisão e são ativados automaticamente após o prazo abaixo caso ninguém intervenha.</small>
+                </div>
+            </label>
+        </div>
+        <div class="ia-cfg-horas-box" ${atual.modo === 'agendado' ? '' : 'hidden'}>
+            <div class="form-group">
+                <label>Prazo de revisão antes da ativação automática
+                    <select class="form-input" name="horas">
+                        ${opcoes(opcoesHoras, atual.horas)}
+                    </select>
+                </label>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-outline" data-ia-cancelar>Cancelar</button>
+            <button type="submit" class="btn btn-primary" data-ia-confirmar>${icon('check')} Salvar regra</button>
+        </div>
+    </form>`, 'modo_pub', (modo) => {
+        dialog.querySelector('.ia-cfg-horas-box').hidden = modo !== 'agendado';
+    });
+
+    form.addEventListener('submit', (ev) => {
+        ev.preventDefault();
+        const modo = form.elements.modo_pub.value;
+        const horas = Number(form.elements.horas?.value || atual.horas || 24);
+        dialog.close();
+        executar(() => api({ acao: 'salvar_config_ia', tipo, modo, horas }));
+    });
+
+    dialog.showModal();
+}
+
 function abrirModalGerarIa(tipo, btnOrigem) {
     const cfg = CFG_GERAR_IA[tipo];
     if (!cfg) return;
-    document.querySelectorAll('dialog.ia-gen-dialog').forEach((el) => el.remove());
+    const politica = politicaIaTipo(tipo);
 
-    const dialog = document.createElement('dialog');
-    dialog.className = 'ia-gen-dialog';
-    dialog.setAttribute('aria-labelledby', 'ia-gen-titulo');
-    dialog.innerHTML = `<form class="ia-gen-form" method="dialog" novalidate>
+    const { dialog, form } = criarDialogIa('', 'ia-gen-titulo', `<form class="ia-gen-form" method="dialog" novalidate>
         <div class="ia-gen-topo">
             <h4 id="ia-gen-titulo">${escapeHTML(cfg.titulo)}</h4>
             <button type="button" class="ia-gen-fechar" aria-label="Fechar" data-ia-fechar>×</button>
         </div>
+        <p class="ia-gen-politica-dica">${escapeHTML(textoDicaPoliticaIa(politica))}</p>
         <div class="ia-gen-opcoes">
             <label class="ia-gen-opcao is-selected">
                 <input type="radio" name="modo_ia" value="auto" checked>
@@ -1137,7 +1275,7 @@ function abrirModalGerarIa(tipo, btnOrigem) {
                 <label>Tema sugerido
                     <input class="form-input" type="text" name="tema" minlength="3" maxlength="150" placeholder="${escapeHTML(cfg.temaPlaceholder)}">
                 </label>
-                <small class="form-hint">De 3 a 150 caracteres. O item é salvo desativado como rascunho para revisão.</small>
+                <small class="form-hint">De 3 a 150 caracteres. Segue a política de publicação configurada acima.</small>
             </div>
             ${cfg.temArea ? `<div class="form-group">
                 <label>Área ambiental (opcional)
@@ -1153,41 +1291,25 @@ function abrirModalGerarIa(tipo, btnOrigem) {
             <button type="button" class="btn btn-outline" data-ia-cancelar>Cancelar</button>
             <button type="submit" class="btn btn-primary" data-ia-confirmar>${icon(cfg.icone)} Gerar com IA</button>
         </div>
-    </form>`;
-
-    document.body.appendChild(dialog);
-    hydrateIcons(dialog);
-
-    const form = dialog.querySelector('form');
-    const temaBox = dialog.querySelector('.ia-gen-tema-box');
-    const temaInput = dialog.querySelector('input[name="tema"]');
-    const areaSelect = dialog.querySelector('select[name="area"]');
-    const erroEl = dialog.querySelector('.ia-gen-erro');
-    const cards = Array.from(dialog.querySelectorAll('.ia-gen-opcao'));
-
-    const atualizarModo = () => {
-        const modo = form.elements.modo_ia.value;
+    </form>`, 'modo_ia', (modo) => {
         const ehTema = modo === 'tema';
-        cards.forEach((c) => c.classList.toggle('is-selected', c.querySelector('input')?.checked));
         temaBox.hidden = !ehTema;
         erroEl.hidden = true;
         erroEl.textContent = '';
         if (ehTema) temaInput.focus();
-    };
+    });
 
-    form.querySelectorAll('input[name="modo_ia"]').forEach((r) => r.addEventListener('change', atualizarModo));
+    const temaBox = dialog.querySelector('.ia-gen-tema-box');
+    const temaInput = dialog.querySelector('input[name="tema"]');
+    const areaSelect = dialog.querySelector('select[name="area"]');
+    const erroEl = dialog.querySelector('.ia-gen-erro');
+
     temaInput.addEventListener('input', () => {
         if (!erroEl.hidden) {
             erroEl.hidden = true;
             erroEl.textContent = '';
         }
     });
-    dialog.querySelector('[data-ia-fechar]').addEventListener('click', () => dialog.close());
-    dialog.querySelector('[data-ia-cancelar]').addEventListener('click', () => dialog.close());
-    dialog.addEventListener('click', (ev) => {
-        if (ev.target === dialog) dialog.close();
-    });
-    dialog.addEventListener('close', () => dialog.remove());
 
     form.addEventListener('submit', (ev) => {
         ev.preventDefault();
@@ -1216,12 +1338,12 @@ function abrirModalGerarIa(tipo, btnOrigem) {
                         if (area) payload.area = area;
                     }
                     await api(payload);
-                    definirFiltro('conteudo-quiz', 'rascunho');
+                    if (politica.modo !== 'imediato') definirFiltro('conteudo-quiz', 'rascunho');
                 } else {
                     const payload = { acao: 'gerar_missoes_ia', escopo: tipo };
                     if (modo === 'tema') payload.tema = tema;
                     await api(payload);
-                    definirFiltro(`conteudo-${tipo}`, 'rascunho');
+                    if (politica.modo !== 'imediato') definirFiltro(`conteudo-${tipo}`, 'rascunho');
                 }
             } finally {
                 if (btnOrigem?.isConnected) {
@@ -1382,6 +1504,10 @@ function ligarEventos() {
                     botoesIa.forEach((btn) => { btn.disabled = false; });
                 }
             })();
+            return;
+        }
+        if (b.dataset.configIa) {
+            abrirModalConfigIa(b.dataset.configIa);
             return;
         }
         if (b.hasAttribute('data-gerar-ia')) {

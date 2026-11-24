@@ -29,6 +29,7 @@ try {
     aprovar_vencidos($jogadorId);
     if ($avaliar) {
         ia_analisar_fila($jogadorId);   // no máximo 1 por minuto (RN91)
+        ativar_conteudo_ia_vencido();   // ativa conteúdos da IA com prazo de revisão vencido (RN91)
         sincronizar_cidade(db(), $jogadorId);
         avaliar_missoes(db(), $jogadorId);
         avaliar_conquistas(db(), $jogadorId);

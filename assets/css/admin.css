@@ -879,3 +879,48 @@ dialog.ia-gen-dialog::backdrop {
 .ia-gen-erro { margin: 0; font-size: 13px; font-weight: 600; color: var(--danger-color); }
 .ia-gen-erro[hidden] { display: none; }
 .ia-gen-dialog .modal-actions { margin-top: 6px; display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+
+/* Barra e modal da política de publicação automática da IA (RN91) */
+.ia-pub-barra {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 14px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: #fafcfa;
+}
+.ia-pub-barra-info {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 8px;
+    font-size: 13px;
+    color: var(--text-color);
+}
+.ia-pub-barra-info .icon { color: var(--primary-color); flex-shrink: 0; }
+.ia-gen-politica-dica {
+    margin: 0 0 12px;
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    background: var(--green-soft);
+    color: var(--text-green);
+    font-size: 13px;
+    line-height: 1.4;
+}
+.ia-cfg-horas-box {
+    padding: 12px 14px;
+    border: 1px dashed var(--border-color);
+    border-radius: var(--radius-sm);
+    background: #fff;
+    margin-bottom: 14px;
+}
+.ia-cfg-horas-box[hidden] { display: none; }
+.ia-cfg-horas-box .form-group { margin-bottom: 0; }
+@media (max-width: 600px) {
+    .ia-pub-barra { flex-direction: column; align-items: stretch; }
+    .ia-pub-barra .btn { width: 100%; justify-content: center; }
+}

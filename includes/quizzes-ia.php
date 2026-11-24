@@ -279,7 +279,7 @@ function gerar_quizzes_ia(string $temaSugerido = '', ?int $areaSugerida = null):
     try {
         $salvarGerado = static function (array $quiz, string $rotulo, array &$resumo) use ($pdo): void {
             salvar_quiz($quiz, $novoId);
-            $pdo->prepare("UPDATE quiz SET origem = 'ia', gerado_em = NOW() WHERE quiz_id = ?")->execute([$novoId]);
+            ia_aplicar_politica_publicacao($pdo, 'quiz', $novoId);
             if ($quiz['noticias']) {
                 $ids = $quiz['noticias'];
                 $pdo->prepare('UPDATE noticia_ia SET usada_em = NOW(), quiz_id = ? WHERE noticia_ia_id IN (' . implode(',', array_fill(0, count($ids), '?')) . ')')

@@ -249,10 +249,12 @@ function gerar_missoes_ia(string $escopo = 'todas', bool $pularSeJaGerou = false
                             $mid = $pdo->prepare('SELECT missao_id FROM missao WHERE nome = ? LIMIT 1');
                             $mid->execute([$nome]);
                             $idCriado = (int) $mid->fetchColumn();
+                            $ativaCriada = false;
                             if ($bancoPronto && $idCriado > 0) {
-                                $pdo->prepare("UPDATE missao SET origem = 'ia', gerado_em = NOW() WHERE missao_id = ?")->execute([$idCriado]);
+                                $pub = ia_aplicar_politica_publicacao($pdo, 'missao', $idCriado);
+                                $ativaCriada = $pub['ativa'];
                             }
-                            $criadas[] = ['escopo' => 'missao', 'id' => $idCriado, 'nome' => $nome, 'xp' => $xp, 'credito' => $cr];
+                            $criadas[] = ['escopo' => 'missao', 'id' => $idCriado, 'nome' => $nome, 'xp' => $xp, 'credito' => $cr, 'ativa' => $ativaCriada];
                         }
                     } catch (Throwable $ex) {
                         $erros[] = 'Missões semanais: ' . $ex->getMessage();
@@ -367,10 +369,12 @@ function gerar_missoes_ia(string $escopo = 'todas', bool $pularSeJaGerou = false
                             $cid = $pdo->prepare('SELECT comunidade_missao_id FROM comunidade_missao WHERE comunidade_id IS NULL AND nome = ? ORDER BY comunidade_missao_id DESC LIMIT 1');
                             $cid->execute([$nome]);
                             $idCriado = (int) $cid->fetchColumn();
+                            $ativaCriada = false;
                             if ($bancoPronto && $idCriado > 0) {
-                                $pdo->prepare("UPDATE comunidade_missao SET origem = 'ia', gerado_em = NOW() WHERE comunidade_missao_id = ?")->execute([$idCriado]);
+                                $pub = ia_aplicar_politica_publicacao($pdo, 'cmissao', $idCriado);
+                                $ativaCriada = $pub['ativa'];
                             }
-                            $criadas[] = ['escopo' => 'cmissao', 'id' => $idCriado, 'nome' => $nome, 'meta' => $meta, 'unidade' => $faixa['un']];
+                            $criadas[] = ['escopo' => 'cmissao', 'id' => $idCriado, 'nome' => $nome, 'meta' => $meta, 'unidade' => $faixa['un'], 'ativa' => $ativaCriada];
                         }
                     } catch (Throwable $ex) {
                         $erros[] = 'Missão de comunidade: ' . $ex->getMessage();

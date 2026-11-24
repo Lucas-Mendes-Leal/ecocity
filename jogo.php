@@ -10,6 +10,7 @@ if ($ids === null) {
 }
 registrar_acesso((int) $ids['jogador_id']);   // jogador ativo hoje (RN81)
 aprovar_vencidos((int) $ids['jogador_id']);
+ativar_conteudo_ia_vencido();   // ativa conteúdos da IA com prazo de revisão vencido (RN91)
 aplicar_queda_diaria(db(), (int) $ids['jogador_id']);   // -1 por dia em cada indicador (RN43)
 sincronizar_cidade(db(), (int) $ids['jogador_id']);   // nível da cidade pelos indicadores atuais
 $avisosMissoes = avaliar_missoes(db(), (int) $ids['jogador_id']);   // conclui / encerra períodos vencidos

@@ -126,10 +126,21 @@ try {
             if ((int) db()->query("SELECT IS_FREE_LOCK('ecocity_quizzes_ia')")->fetchColumn() !== 1) {
                 throw new RegistroInvalido('Já existe uma geração de quizzes em andamento.');
             }
+            $cfgQuiz = ia_config_publicacao()['quiz'];
             session_write_close();
-            $msgInicio = $temaQuiz !== ''
-                ? "A IA começou a gerar o quiz sobre \"{$temaQuiz}\" (leva alguns minutos). O rascunho aparece aqui quando ficar pronto."
-                : 'A IA começou a ler as notícias e gerar os quizzes (leva de 5 a 15 minutos). Os rascunhos aparecem aqui quando ficarem prontos.';
+            if ($cfgQuiz['modo'] === 'imediato') {
+                $msgInicio = $temaQuiz !== ''
+                    ? "A IA começou a gerar o quiz sobre \"{$temaQuiz}\" (leva alguns minutos). Ele será ativado automaticamente ao ficar pronto."
+                    : 'A IA começou a ler as notícias e gerar os quizzes (leva de 5 a 15 minutos). Eles serão ativados automaticamente ao ficarem prontos.';
+            } elseif ($cfgQuiz['modo'] === 'agendado') {
+                $msgInicio = $temaQuiz !== ''
+                    ? "A IA começou a gerar o quiz sobre \"{$temaQuiz}\" (leva alguns minutos). O rascunho entra para revisão e será ativado automaticamente após {$cfgQuiz['horas']}h."
+                    : "A IA começou a ler as notícias e gerar os quizzes (leva de 5 a 15 minutos). Os rascunhos entram para revisão e serão ativados automaticamente após {$cfgQuiz['horas']}h.";
+            } else {
+                $msgInicio = $temaQuiz !== ''
+                    ? "A IA começou a gerar o quiz sobre \"{$temaQuiz}\" (leva alguns minutos). O rascunho aparece aqui quando ficar pronto."
+                    : 'A IA começou a ler as notícias e gerar os quizzes (leva de 5 a 15 minutos). Os rascunhos aparecem aqui quando ficarem prontos.';
+            }
             $corpo = json_encode(['ok' => true, 'conteudo' => listar_conteudo($admin), 'mensagem' => $msgInicio], JSON_UNESCAPED_UNICODE);
             ignore_user_abort(true);
             set_time_limit(1800);
@@ -147,6 +158,20 @@ try {
                 error_log('EcoCity — quizzes da IA: ' . $ex->getMessage());
             }
             exit;
+        case 'salvar_config_ia':
+            $exigirPerm('conteudo_catalogo');
+            $iaTipo = (string) ($_POST['tipo'] ?? '');
+            $iaModo = (string) ($_POST['modo'] ?? '');
+            $iaHoras = (int) ($_POST['horas'] ?? 24);
+            ia_salvar_config_publicacao($iaTipo, $iaModo, $iaHoras, $adminId);
+            $rotTipos = ['quiz' => 'Quizzes', 'missao' => 'Missões semanais', 'cmissao' => 'Missões de comunidade'];
+            $rotModo = match ($iaModo) {
+                'imediato' => 'ativados automaticamente na hora',
+                'agendado' => "desativados para revisão e ativados automaticamente após {$iaHoras}h",
+                default    => 'mantidos desativados até ativação manual',
+            };
+            $mensagem = "Publicação da IA para {$rotTipos[$iaTipo]} definida: {$rotModo}.";
+            break;
         case 'dissolver':
             $exigirPerm('comunidades');
             $mensagem = dissolver_comunidade_admin((int) ($_POST['comunidade_id'] ?? 0));
@@ -163,11 +188,24 @@ try {
             if ($qtd === 0 && $g['erros']) {
                 throw new RegistroInvalido(implode(' ', $g['erros']));
             }
+            $msgMissoes = $qtd === 1
+                ? "1 rascunho criado pela IA para a semana ({$g['semana']}). Revise e ative."
+                : "{$qtd} rascunhos criados pela IA para a semana ({$g['semana']}). Revise e ative.";
+            if ($escopo === 'missao' || $escopo === 'cmissao') {
+                $cfgM = ia_config_publicacao()[$escopo];
+                if ($cfgM['modo'] === 'imediato') {
+                    $msgMissoes = $qtd === 1
+                        ? "1 missão criada e ativada pela IA para a semana ({$g['semana']})."
+                        : "{$qtd} missões criadas e ativadas pela IA para a semana ({$g['semana']}).";
+                } elseif ($cfgM['modo'] === 'agendado') {
+                    $msgMissoes = $qtd === 1
+                        ? "1 rascunho criado pela IA para a semana ({$g['semana']}), com ativação automática em {$cfgM['horas']}h."
+                        : "{$qtd} rascunhos criados pela IA para a semana ({$g['semana']}), com ativação automática em {$cfgM['horas']}h.";
+                }
+            }
             json_resposta([
                 'ok'        => true,
-                'mensagem'  => $qtd === 1
-                    ? "1 rascunho criado pela IA para a semana ({$g['semana']}). Revise e ative."
-                    : "{$qtd} rascunhos criados pela IA para a semana ({$g['semana']}). Revise e ative.",
+                'mensagem'  => $msgMissoes,
                 'resultado' => $g,
                 'conteudo'  => listar_conteudo($admin),
             ]);

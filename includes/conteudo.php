@@ -130,6 +130,7 @@ function c_transacao(callable $fn)
 
 function listar_conteudo(?array $admin = null): array
 {
+    ativar_conteudo_ia_vencido();
     $pdo = db();
     $secoes = $admin !== null
         ? admin_secoes_conteudo_permitidas($admin)
@@ -171,7 +172,7 @@ function listar_conteudo(?array $admin = null): array
             'id' => (int) $q['quiz_id'], 'titulo' => $q['titulo'], 'descricao' => $q['descricao'], 'categoria' => (int) $q['categoria_ambiental_id'],
             'dificuldade' => $q['dificuldade'], 'tipo' => $q['tipo'], 'xp' => (int) $q['recompensa_xp'], 'credito' => (int) $q['recompensa_credito'],
             'ativa' => (bool) $q['ativa'], 'usado' => $usado('quiz', (int) $q['quiz_id']), 'perguntas' => $perguntas[(int) $q['quiz_id']] ?? [],
-            'origem' => $q['origem'] ?? 'manual', 'geradoEm' => $q['gerado_em'] ?? null,
+            'origem' => $q['origem'] ?? 'manual', 'geradoEm' => $q['gerado_em'] ?? null, 'ativarEm' => $q['ativar_em'] ?? null,
         ], $pdo->query('SELECT * FROM quiz ORDER BY quiz_id')->fetchAll());
     }
 
@@ -185,7 +186,7 @@ function listar_conteudo(?array $admin = null): array
             'id' => (int) $m['missao_id'], 'tipo' => (int) $m['tipo_missao_id'], 'nome' => $m['nome'], 'descricao' => $m['descricao'],
             'xp' => (int) $m['recompensa_xp'], 'credito' => (int) $m['recompensa_credito'], 'penalidade' => (int) $m['penalidade_indicador'],
             'dataInicio' => $m['data_inicio'], 'dataFim' => $m['data_fim'], 'ativa' => (bool) $m['ativa'],
-            'origem' => $m['origem'] ?? 'manual', 'geradoEm' => $m['gerado_em'] ?? null,
+            'origem' => $m['origem'] ?? 'manual', 'geradoEm' => $m['gerado_em'] ?? null, 'ativarEm' => $m['ativar_em'] ?? null,
             'usado' => $usado('missao', (int) $m['missao_id']), 'metas' => $metas[(int) $m['missao_id']] ?? [],
         ], $pdo->query('SELECT * FROM missao ORDER BY missao_id')->fetchAll());
     }
@@ -223,12 +224,13 @@ function listar_conteudo(?array $admin = null): array
         'atividade' => (int) $m['atividade_sustentavel_id'], 'meta' => (float) $m['meta'], 'unidade' => $m['impacto_real_unidade'],
         'xp' => (int) $m['recompensa_xp'], 'credito' => (int) $m['recompensa_credito'], 'pontos' => (int) $m['pontos'],
         'dataInicio' => $m['data_inicio'], 'dataFim' => $m['data_fim'], 'ativa' => (bool) $m['ativa'],
-        'origem' => $m['origem'] ?? 'manual', 'geradoEm' => $m['gerado_em'] ?? null,
+        'origem' => $m['origem'] ?? 'manual', 'geradoEm' => $m['gerado_em'] ?? null, 'ativarEm' => $m['ativar_em'] ?? null,
         'usado' => $usado('cmissao', (int) $m['comunidade_missao_id']),
     ], $pdo->query('SELECT m.*, a.impacto_real_unidade FROM comunidade_missao m
                       JOIN atividade_sustentavel a ON a.atividade_sustentavel_id = m.atividade_sustentavel_id
                      WHERE m.comunidade_id IS NULL ORDER BY m.comunidade_missao_id')->fetchAll()) : [];
 
+    $usaIaConteudo = $tem('quiz') || $tem('missao') || $tem('cmissao');
     return [
         'categorias' => $categorias, 'dificuldades' => array_keys(QUIZ_MULTIPLICADOR), 'categoriasConstrucao' => CATEGORIAS_CONSTRUCAO,
         'desenhos' => DESENHOS_ESTRUTURA, 'aparenciaPadrao' => APARENCIA_PADRAO,
@@ -245,7 +247,10 @@ function listar_conteudo(?array $admin = null): array
         'perfisAdmin' => $tem('conta') && ($admin === null || admin_tem_permissao($admin, 'contas_admin')) ? admin_catalogo_perfis() : [],
         'perfisPronto' => admin_perfis_banco_pronto(),
         'usuarioAtualId' => $admin['usuarioId'] ?? usuario_id(),
-        'iaDisponivel' => $tem('quiz') || $tem('missao') || $tem('cmissao') || $tem('construcao') ? ia_disponivel() : false,
+        'iaDisponivel' => $usaIaConteudo || $tem('construcao') ? ia_disponivel() : false,
+        'iaConfigPublicacao' => $usaIaConteudo ? ia_config_publicacao() : [],
+        'iaConfigPronto' => $usaIaConteudo ? ia_config_pub_banco_pronto() : false,
+        'iaHorasOpcoes' => IA_PUB_HORAS,
     ];
 }
 
@@ -375,7 +380,8 @@ function salvar_quiz(array $d, ?int &$novoId = null): string
             $id = (int) $pdo->lastInsertId();
         } else {
             if (!c_existe($pdo, 'SELECT 1 FROM quiz WHERE quiz_id = ? FOR UPDATE', [$id])) throw new RegistroInvalido('Quiz não encontrado.');
-            $pdo->prepare('UPDATE quiz SET titulo = ?, descricao = ?, categoria_ambiental_id = ?, recompensa_xp = ?, recompensa_credito = ?, dificuldade = ?, tipo = ?, ativa = ? WHERE quiz_id = ?')
+            $limparAg = ia_config_pub_banco_pronto() ? ', ativar_em = NULL' : '';
+            $pdo->prepare("UPDATE quiz SET titulo = ?, descricao = ?, categoria_ambiental_id = ?, recompensa_xp = ?, recompensa_credito = ?, dificuldade = ?, tipo = ?, ativa = ?{$limparAg} WHERE quiz_id = ?")
                 ->execute([...$params, $id]);
             if ($usado) {
                 atualizar_textos_quiz($pdo, $id, $perguntas);
@@ -464,8 +470,9 @@ function salvar_missao(array $d): string
                 $id = (int) $pdo->lastInsertId();
             } else {
                 if (!c_existe($pdo, 'SELECT 1 FROM missao WHERE missao_id = ? FOR UPDATE', [$id])) throw new RegistroInvalido('Missão não encontrada.');
-                $pdo->prepare('UPDATE missao SET tipo_missao_id = ?, nome = ?, descricao = ?, recompensa_xp = ?, recompensa_credito = ?, penalidade_indicador = ?,
-                                      data_inicio = ?, data_fim = ?, ativa = ? WHERE missao_id = ?')->execute([...$params, $id]);
+                $limparAg = ia_config_pub_banco_pronto() ? ', ativar_em = NULL' : '';
+                $pdo->prepare("UPDATE missao SET tipo_missao_id = ?, nome = ?, descricao = ?, recompensa_xp = ?, recompensa_credito = ?, penalidade_indicador = ?,
+                                      data_inicio = ?, data_fim = ?, ativa = ?{$limparAg} WHERE missao_id = ?")->execute([...$params, $id]);
             }
         } catch (PDOException $ex) {
             c_unico($ex, 'Já existe uma missão com esse nome.');
@@ -614,8 +621,9 @@ function salvar_cmissao(array $d): string
             if ((int) $atual !== $v['atividade'] && conteudo_usado($pdo, 'cmissao', $id)) {
                 throw new RegistroInvalido('Esta missão já foi concluída por comunidades: a atividade não pode mudar. Crie uma nova missão.');
             }
-            $pdo->prepare('UPDATE comunidade_missao SET nome = ?, descricao = ?, atividade_sustentavel_id = ?, meta = ?, recompensa_xp = ?, recompensa_credito = ?,
-                                  pontos = ?, data_inicio = ?, data_fim = ?, ativa = ? WHERE comunidade_missao_id = ?')->execute([...$params, $id]);
+            $limparAg = ia_config_pub_banco_pronto() ? ', ativar_em = NULL' : '';
+            $pdo->prepare("UPDATE comunidade_missao SET nome = ?, descricao = ?, atividade_sustentavel_id = ?, meta = ?, recompensa_xp = ?, recompensa_credito = ?,
+                                  pontos = ?, data_inicio = ?, data_fim = ?, ativa = ?{$limparAg} WHERE comunidade_missao_id = ?")->execute([...$params, $id]);
         }
         return 'Missão de comunidade salva.';
     });
@@ -650,7 +658,8 @@ function alterar_ativo_conteudo(string $tipo, int $id, bool $ativo): string
 {
     [$tabela, $chave, $filtro] = tabela_conteudo($tipo);
     if (!c_existe(db(), "SELECT 1 FROM {$tabela} WHERE {$chave} = ?{$filtro}", [$id])) throw new RegistroInvalido('Item não encontrado.');
-    db()->prepare("UPDATE {$tabela} SET ativa = ? WHERE {$chave} = ?")->execute([(int) $ativo, $id]);
+    $limparAg = in_array($tipo, IA_PUB_TIPOS, true) && ia_config_pub_banco_pronto() ? ', ativar_em = NULL' : '';
+    db()->prepare("UPDATE {$tabela} SET ativa = ?{$limparAg} WHERE {$chave} = ?")->execute([(int) $ativo, $id]);
     return $ativo ? 'Item ativado: aparece no jogo.' : 'Item desativado: não aparece mais no jogo.';
 }
 

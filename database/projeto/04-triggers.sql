@@ -998,4 +998,17 @@ BEGIN
             JSON_OBJECT('parceiro_id', NEW.parceiro_id, 'usado', NEW.data_uso IS NOT NULL, 'data_uso', NEW.data_uso));
     END IF;
 END$$
+CREATE TRIGGER `trg_aud_configuracao_sistema_ins` AFTER INSERT ON `configuracao_sistema` FOR EACH ROW
+BEGIN
+    CALL registrar_auditoria('configuracao_sistema', NEW.configuracao_sistema_id, 'INSERT', NULL,
+        JSON_OBJECT('chave', NEW.chave, 'valor', NEW.valor, 'atualizado_por', NEW.atualizado_por));
+END$$
+CREATE TRIGGER `trg_aud_configuracao_sistema_upd` AFTER UPDATE ON `configuracao_sistema` FOR EACH ROW
+BEGIN
+    IF NOT (OLD.chave <=> NEW.chave) OR NOT (OLD.valor <=> NEW.valor) OR NOT (OLD.atualizado_por <=> NEW.atualizado_por) THEN
+        CALL registrar_auditoria('configuracao_sistema', NEW.configuracao_sistema_id, 'UPDATE',
+            JSON_OBJECT('chave', OLD.chave, 'valor', OLD.valor, 'atualizado_por', OLD.atualizado_por),
+            JSON_OBJECT('chave', NEW.chave, 'valor', NEW.valor, 'atualizado_por', NEW.atualizado_por));
+    END IF;
+END$$
 DELIMITER ;

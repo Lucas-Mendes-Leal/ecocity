@@ -350,6 +350,7 @@ CREATE TABLE IF NOT EXISTS `missao` (
   `ativa` tinyint(1) NOT NULL DEFAULT '1',
   `origem` varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'manual',
   `gerado_em` datetime DEFAULT NULL,
+  `ativar_em` datetime DEFAULT NULL,
   PRIMARY KEY (`missao_id`),
   UNIQUE KEY `uq_missao_nome` (`nome`),
   KEY `fk_missao_tipo` (`tipo_missao_id`),
@@ -492,6 +493,7 @@ CREATE TABLE IF NOT EXISTS `quiz` (
   `tipo` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'tematico',
   `origem` varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'manual',
   `gerado_em` datetime DEFAULT NULL,
+  `ativar_em` datetime DEFAULT NULL,
   PRIMARY KEY (`quiz_id`),
   KEY `fk_quiz_categoria` (`categoria_ambiental_id`),
   CONSTRAINT `fk_quiz_categoria` FOREIGN KEY (`categoria_ambiental_id`) REFERENCES `categoria_ambiental` (`categoria_ambiental_id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
@@ -844,6 +846,7 @@ CREATE TABLE IF NOT EXISTS `comunidade_missao` (
   `ativa` tinyint(1) NOT NULL DEFAULT '1',
   `origem` varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'manual',
   `gerado_em` datetime DEFAULT NULL,
+  `ativar_em` datetime DEFAULT NULL,
   `criada_por` int DEFAULT NULL,
   PRIMARY KEY (`comunidade_missao_id`),
   KEY `ix_cmissao_comunidade` (`comunidade_id`,`ativa`),
@@ -1178,6 +1181,29 @@ CREATE TABLE IF NOT EXISTS `ajuste_conta_admin` (
   CONSTRAINT `ck_ajuste_admin_motivo` CHECK ((CHAR_LENGTH(TRIM(`motivo`)) >= 5))
 ) ENGINE=InnoDB;
 
+
+-- -----------------------------------------------------------------------------
+-- Configurações globais da administração (migração 046)
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `configuracao_sistema` (
+  `configuracao_sistema_id` int NOT NULL AUTO_INCREMENT,
+  `chave` varchar(60) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `valor` varchar(250) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `atualizado_em` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `atualizado_por` int DEFAULT NULL,
+  PRIMARY KEY (`configuracao_sistema_id`),
+  UNIQUE KEY `uq_configuracao_sistema_chave` (`chave`),
+  KEY `fk_config_admin` (`atualizado_por`),
+  CONSTRAINT `fk_config_admin` FOREIGN KEY (`atualizado_por`) REFERENCES `administrador` (`administrador_id`) ON DELETE SET NULL ON UPDATE RESTRICT
+) ENGINE=InnoDB;
+
+INSERT IGNORE INTO `configuracao_sistema` (`chave`, `valor`) VALUES
+  ('ia_pub_quiz_modo', 'manual'),
+  ('ia_pub_quiz_horas', '24'),
+  ('ia_pub_missao_modo', 'manual'),
+  ('ia_pub_missao_horas', '24'),
+  ('ia_pub_cmissao_modo', 'manual'),
+  ('ia_pub_cmissao_horas', '24');
 
 -- -----------------------------------------------------------------------------
 -- Sincronização em tempo real e auditoria

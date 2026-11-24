@@ -70,6 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 if ($pode('contestacoes') || $pode('visao_geral')) {
     aprovar_vencidos(null);   // vencidos de todos os jogadores
 }
+ativar_conteudo_ia_vencido();   // ativa conteúdos da IA com prazo de revisão vencido (RN91)
 
 $abasConteudo = ['catalogo', 'promocao', 'comunidade', 'conta', 'auditoria'];
 $abaPedido = (string) ($_GET['aba'] ?? '');

@@ -359,3 +359,123 @@ function ia_normalizar_tema(string $bruto): string
     }
     return $tema;
 }
+
+/* ---------------------------------------------------------------------------
+   Política de publicação dos conteúdos gerados por IA (migração 046 / RN91)
+   --------------------------------------------------------------------------- */
+
+const IA_PUB_TIPOS = ['quiz', 'missao', 'cmissao'];
+const IA_PUB_MODOS = ['manual', 'imediato', 'agendado'];
+const IA_PUB_HORAS = [6, 12, 24, 48, 72];
+
+/** Migração 046 aplicada (`configuracao_sistema` e `ativar_em`)? */
+function ia_config_pub_banco_pronto(): bool
+{
+    return schema_flag('ia_config_pub', static fn(): bool => (int) db()->query(
+        "SELECT
+            (SELECT COUNT(*) FROM information_schema.tables
+              WHERE table_schema = DATABASE() AND table_name = 'configuracao_sistema')
+          + (SELECT COUNT(*) FROM information_schema.columns
+              WHERE table_schema = DATABASE() AND table_name = 'quiz' AND column_name = 'ativar_em')"
+    )->fetchColumn() === 2);
+}
+
+/** Política configurada por tipo ('quiz', 'missao', 'cmissao'): ['modo' => string, 'horas' => int]. */
+function ia_config_publicacao(): array
+{
+    $padrao = [];
+    foreach (IA_PUB_TIPOS as $t) {
+        $padrao[$t] = ['modo' => 'manual', 'horas' => 24];
+    }
+    if (!ia_config_pub_banco_pronto()) {
+        return $padrao;
+    }
+    $linhas = db()->query("SELECT chave, valor FROM configuracao_sistema WHERE chave LIKE 'ia_pub_%'")
+        ->fetchAll(PDO::FETCH_KEY_PAIR);
+    foreach (IA_PUB_TIPOS as $t) {
+        $modo = (string) ($linhas["ia_pub_{$t}_modo"] ?? 'manual');
+        if (in_array($modo, IA_PUB_MODOS, true)) {
+            $padrao[$t]['modo'] = $modo;
+        }
+        $horas = (int) ($linhas["ia_pub_{$t}_horas"] ?? 24);
+        if (in_array($horas, IA_PUB_HORAS, true)) {
+            $padrao[$t]['horas'] = $horas;
+        }
+    }
+    return $padrao;
+}
+
+/** Valida e grava a política de publicação da IA para um tipo de conteúdo. */
+function ia_salvar_config_publicacao(string $tipo, string $modo, int $horas, ?int $adminId = null): array
+{
+    if (!in_array($tipo, IA_PUB_TIPOS, true)) {
+        throw new RegistroInvalido('Tipo de conteúdo inválido para política da IA.');
+    }
+    if (!in_array($modo, IA_PUB_MODOS, true)) {
+        throw new RegistroInvalido('Modo de publicação inválido.');
+    }
+    if (!in_array($horas, IA_PUB_HORAS, true)) {
+        throw new RegistroInvalido('Prazo de carência inválido.');
+    }
+    if (!ia_config_pub_banco_pronto()) {
+        throw new RegistroInvalido('O banco ainda não possui a tabela de configurações. Aplique a migração 046 antes.');
+    }
+    $pdo = db();
+    $stmt = $pdo->prepare(
+        'INSERT INTO configuracao_sistema (chave, valor, atualizado_por) VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE valor = VALUES(valor), atualizado_por = VALUES(atualizado_por)'
+    );
+    $stmt->execute(["ia_pub_{$tipo}_modo", $modo, $adminId]);
+    $stmt->execute(["ia_pub_{$tipo}_horas", (string) $horas, $adminId]);
+    return ia_config_publicacao();
+}
+
+/** Aplica a política configurada ao conteúdo recém-criado pela IA (`origem = 'ia'`). */
+function ia_aplicar_politica_publicacao(PDO $pdo, string $tipo, int $id): array
+{
+    $mapa = [
+        'quiz'    => ['quiz', 'quiz_id'],
+        'missao'  => ['missao', 'missao_id'],
+        'cmissao' => ['comunidade_missao', 'comunidade_missao_id'],
+    ];
+    if (!isset($mapa[$tipo])) {
+        throw new RegistroInvalido('Tipo de conteúdo inválido.');
+    }
+    [$tabela, $chave] = $mapa[$tipo];
+    $cfg = ia_config_publicacao()[$tipo];
+    $modo = $cfg['modo'];
+    $horas = $cfg['horas'];
+
+    if (!ia_config_pub_banco_pronto()) {
+        $pdo->prepare("UPDATE {$tabela} SET origem = 'ia', gerado_em = NOW() WHERE {$chave} = ?")->execute([$id]);
+        return ['modo' => 'manual', 'horas' => 24, 'ativa' => false];
+    }
+
+    if ($modo === 'imediato') {
+        $pdo->prepare("UPDATE {$tabela} SET origem = 'ia', gerado_em = NOW(), ativa = TRUE, ativar_em = NULL WHERE {$chave} = ?")
+            ->execute([$id]);
+    } elseif ($modo === 'agendado') {
+        $stmt = $pdo->prepare("UPDATE {$tabela} SET origem = 'ia', gerado_em = NOW(), ativa = FALSE, ativar_em = DATE_ADD(NOW(), INTERVAL ? HOUR) WHERE {$chave} = ?");
+        $stmt->bindValue(1, $horas, PDO::PARAM_INT);
+        $stmt->bindValue(2, $id, PDO::PARAM_INT);
+        $stmt->execute();
+    } else {
+        $pdo->prepare("UPDATE {$tabela} SET origem = 'ia', gerado_em = NOW(), ativa = FALSE, ativar_em = NULL WHERE {$chave} = ?")
+            ->execute([$id]);
+    }
+    return ['modo' => $modo, 'horas' => $horas, 'ativa' => $modo === 'imediato'];
+}
+
+/** Ativa automaticamente quizzes e missões gerados pela IA cujo prazo de carência (`ativar_em`) já venceu. */
+function ativar_conteudo_ia_vencido(): int
+{
+    if (!ia_config_pub_banco_pronto()) {
+        return 0;
+    }
+    $pdo = db();
+    $total = 0;
+    $total += $pdo->exec('UPDATE quiz SET ativa = TRUE, ativar_em = NULL WHERE ativa = FALSE AND ativar_em IS NOT NULL AND ativar_em <= NOW()');
+    $total += $pdo->exec('UPDATE missao SET ativa = TRUE, ativar_em = NULL WHERE ativa = FALSE AND ativar_em IS NOT NULL AND ativar_em <= NOW()');
+    $total += $pdo->exec('UPDATE comunidade_missao SET ativa = TRUE, ativar_em = NULL WHERE comunidade_id IS NULL AND ativa = FALSE AND ativar_em IS NOT NULL AND ativar_em <= NOW()');
+    return $total;
+}

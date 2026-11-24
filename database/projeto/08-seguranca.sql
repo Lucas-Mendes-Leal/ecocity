@@ -89,6 +89,7 @@ GRANT SELECT, INSERT ON ecocity.`codigo_promocional_resgate` TO 'ecocity_role_ap
 GRANT SELECT, INSERT, DELETE ON ecocity.`tentativa_codigo_promocional` TO 'ecocity_role_app';
 GRANT SELECT, INSERT ON ecocity.`ajuste_conta_admin` TO 'ecocity_role_app';   -- RN99: sem UPDATE/DELETE (imutável)
 GRANT SELECT, INSERT, DELETE ON ecocity.`tentativa_acao_ip` TO 'ecocity_role_app';
+GRANT SELECT, INSERT, UPDATE ON ecocity.`configuracao_sistema` TO 'ecocity_role_app';
 -- Views (somente leitura) e procedures
 GRANT SELECT ON ecocity.`vw_acerto_pergunta` TO 'ecocity_role_app';
 GRANT SELECT ON ecocity.`vw_atividade_resumo` TO 'ecocity_role_app';
