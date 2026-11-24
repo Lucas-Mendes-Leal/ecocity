@@ -115,15 +115,22 @@ try {
             ]);
         case 'gerar_ia':
             $exigirPerm('conteudo_catalogo');
+            $temaQuiz = ia_normalizar_tema((string) ($_POST['tema'] ?? ''));
+            $areaRaw = trim((string) ($_POST['area'] ?? ''));
+            $areaQuiz = ($temaQuiz !== '' && $areaRaw !== '') ? (int) $areaRaw : null;
+            if ($areaQuiz !== null && !isset(ia_areas()[$areaQuiz])) {
+                throw new RegistroInvalido('Área ambiental inválida.');
+            }
             // Leva alguns minutos (mais do que o túnel espera): responde já e continua em segundo plano.
             if (!ia_disponivel()) throw new RegistroInvalido('A IA não está disponível no momento. Tente novamente em instantes.');
             if ((int) db()->query("SELECT IS_FREE_LOCK('ecocity_quizzes_ia')")->fetchColumn() !== 1) {
                 throw new RegistroInvalido('Já existe uma geração de quizzes em andamento.');
             }
             session_write_close();
-            $corpo = json_encode(['ok' => true, 'conteudo' => listar_conteudo($admin),
-                'mensagem' => 'A IA começou a ler as notícias e gerar os quizzes (leva de 5 a 15 minutos). Os rascunhos aparecem aqui quando ficarem prontos.'],
-                JSON_UNESCAPED_UNICODE);
+            $msgInicio = $temaQuiz !== ''
+                ? "A IA começou a gerar o quiz sobre \"{$temaQuiz}\" (leva alguns minutos). O rascunho aparece aqui quando ficar pronto."
+                : 'A IA começou a ler as notícias e gerar os quizzes (leva de 5 a 15 minutos). Os rascunhos aparecem aqui quando ficarem prontos.';
+            $corpo = json_encode(['ok' => true, 'conteudo' => listar_conteudo($admin), 'mensagem' => $msgInicio], JSON_UNESCAPED_UNICODE);
             ignore_user_abort(true);
             set_time_limit(1800);
             if (function_exists('apache_setenv')) @apache_setenv('no-gzip', '1');
@@ -134,7 +141,7 @@ try {
             while (ob_get_level() > 0) ob_end_flush();
             flush();
             try {
-                $g = gerar_quizzes_ia();
+                $g = gerar_quizzes_ia($temaQuiz, $areaQuiz);
                 error_log('EcoCity — quizzes da IA: ' . count($g['criados']) . ' rascunho(s) ' . implode(' | ', $g['erros']));
             } catch (Throwable $ex) {
                 error_log('EcoCity — quizzes da IA: ' . $ex->getMessage());
@@ -146,11 +153,12 @@ try {
             break;
         case 'gerar_missoes_ia':
             $exigirPerm('conteudo_catalogo');
-            session_write_close();
-            set_time_limit(180);
             $escopo = (string) ($_POST['escopo'] ?? 'todas');
             if (!in_array($escopo, ['missao', 'cmissao', 'todas'], true)) $escopo = 'todas';
-            $g = gerar_missoes_ia($escopo, false);
+            $temaMissao = ia_normalizar_tema((string) ($_POST['tema'] ?? ''));
+            session_write_close();
+            set_time_limit(180);
+            $g = gerar_missoes_ia($escopo, false, $temaMissao);
             $qtd = count($g['criadas']);
             if ($qtd === 0 && $g['erros']) {
                 throw new RegistroInvalido(implode(' ', $g['erros']));

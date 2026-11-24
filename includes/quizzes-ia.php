@@ -113,13 +113,49 @@ function ia_escolher_temas(array $noticias, array $areas): array
     return $temas;
 }
 
+/** Limpa, valida e submete à conferência da IA o conjunto de perguntas de um quiz gerado. */
+function ia_montar_quiz_validado(?array $d, int $areaId, string $temaTitulo, string $textoConferencia, array $base = [], bool $usarNoticias = true): ?array
+{
+    if (!is_array($d) || count($d['perguntas'] ?? []) < 3) return null;
+    $limpar = static fn($t) => trim(preg_replace('/^\s*(?:[A-Da-d][\)\.:-]|\([A-Da-d]\))\s+/u', '', (string) $t));   // tira "A) ", "b. " etc.
+    $cortar = static fn($t, $max) => mb_strlen(trim((string) $t)) > $max ? rtrim(mb_substr(trim((string) $t), 0, $max - 1)) . '…' : trim((string) $t);
+    $perguntas = [];
+    foreach ($d['perguntas'] as $p) {
+        $alts = array_values(array_filter(array_map($limpar, (array) ($p['alternativas'] ?? [])), static fn($a) => $a !== ''));
+        $correta = (int) ($p['correta'] ?? -1);
+        if (count($alts) < 2 || count($alts) > 6 || !isset($alts[$correta]) || mb_strlen(trim((string) $p['enunciado'])) < 3) continue;
+        if (preg_match('/not[ií]cia\s*\d|segundo a not[ií]cia|todas as anteriores|ambas as anteriores/iu', $p['enunciado'] . ' ' . implode(' ', $alts))) continue;
+        $fonte = $base ? ($base[(int) ($p['fonte'] ?? 1) - 1] ?? $base[0]) : null;
+        $explicacao = $cortar($p['explicacao'] ?? '', 200);
+        $perguntas[] = [
+            'enunciado' => $cortar($p['enunciado'], 150),
+            'fonteTitulo' => $fonte ? $cortar($fonte['titulo'], 200) : '',
+            'fonteUrl' => $fonte ? $fonte['url'] : '',
+            'alternativas' => array_map(static fn($i, $a) => ['texto' => $cortar($a, 100), 'correta' => $i === $correta,
+                'explicacao' => $i === $correta ? $explicacao : ''], array_keys($alts), $alts),
+        ];
+    }
+    $perguntas = array_slice(ia_conferir_perguntas($perguntas, $textoConferencia, $usarNoticias), 0, IA_PERGUNTAS_POR_QUIZ);
+    if (count($perguntas) < QUIZ_TIPOS['tematico']['min']) return null;
+    $dific = array_key_exists($d['dificuldade'] ?? '', QUIZ_MULTIPLICADOR) ? $d['dificuldade'] : 'Médio';
+    $titulo = $cortar($d['titulo'] ?? $temaTitulo, 50);
+    if (mb_strlen($titulo) < 3) $titulo = $cortar($temaTitulo, 50);
+    $descricao = $cortar($d['descricao'] ?? '', 150);
+    if (mb_strlen($descricao) < 3) $descricao = $cortar("Quiz educativo sobre {$temaTitulo}.", 150);
+    return [
+        'titulo' => $titulo, 'descricao' => $descricao,
+        'categoria' => $areaId, 'xp' => IA_QUIZ_XP, 'credito' => IA_QUIZ_CREDITO, 'ativa' => false,
+        'dificuldade' => $dific, 'tipo' => 'tematico', 'perguntas' => $perguntas,
+        'noticias' => $base ? array_column($base, 'id') : [],
+    ];
+}
+
 /** Gera um quiz sobre o tema a partir das notícias; devolve os dados no formato de salvar_quiz(). */
 function ia_gerar_quiz(array $tema, array $noticias): ?array
 {
     $base = array_values(array_filter($noticias, static fn($n) => in_array($n['id'], $tema['noticias'], true)));
     $textos = implode("\n\n", array_map(static fn($i, $n) => '[' . ($i + 1) . "] {$n['titulo']} ({$n['fonte']}, " . substr((string) $n['data'], 0, 10) . ")\n{$n['resumo']}",
         array_keys($base), $base));
-    $limpar = static fn($t) => trim(preg_replace('/^\s*(?:[A-Da-d][\)\.:-]|\([A-Da-d]\))\s+/u', '', (string) $t));   // tira "A) ", "b. " etc.
     $esquema = ['type' => 'object', 'properties' => [
         'titulo' => ['type' => 'string'], 'descricao' => ['type' => 'string'], 'dificuldade' => ['type' => 'string', 'enum' => array_keys(QUIZ_MULTIPLICADOR)],
         'perguntas' => ['type' => 'array', 'items' => ['type' => 'object', 'properties' => [
@@ -144,39 +180,54 @@ function ia_gerar_quiz(array $tema, array $noticias): ?array
         . 'Perguntas claras, sem pegadinhas e sem \"todas as anteriores\".',
         [], $esquema, 240
     );
-    $d = $r['dados'];
-    if (!is_array($d) || count($d['perguntas'] ?? []) < 3) return null;
-    $cortar = static fn($t, $max) => mb_strlen(trim((string) $t)) > $max ? rtrim(mb_substr(trim((string) $t), 0, $max - 1)) . '…' : trim((string) $t);
-    $perguntas = [];
-    foreach ($d['perguntas'] as $p) {
-        $alts = array_values(array_filter(array_map($limpar, (array) ($p['alternativas'] ?? [])), static fn($a) => $a !== ''));
-        $correta = (int) ($p['correta'] ?? -1);
-        if (count($alts) < 2 || count($alts) > 6 || !isset($alts[$correta]) || mb_strlen(trim((string) $p['enunciado'])) < 3) continue;
-        if (preg_match('/not[ií]cia\s*\d|segundo a not[ií]cia|todas as anteriores|ambas as anteriores/iu', $p['enunciado'] . ' ' . implode(' ', $alts))) continue;
-        $fonte = $base[(int) ($p['fonte'] ?? 1) - 1] ?? $base[0];
-        $explicacao = $cortar($p['explicacao'] ?? '', 200);
-        $perguntas[] = [
-            'enunciado' => $cortar($p['enunciado'], 150),
-            'fonteTitulo' => $cortar($fonte['titulo'], 200), 'fonteUrl' => $fonte['url'],
-            'alternativas' => array_map(static fn($i, $a) => ['texto' => $cortar($a, 100), 'correta' => $i === $correta,
-                'explicacao' => $i === $correta ? $explicacao : ''], array_keys($alts), $alts),
-        ];
-    }
-    $perguntas = array_slice(ia_conferir_perguntas($perguntas, $textos), 0, IA_PERGUNTAS_POR_QUIZ);
-    if (count($perguntas) < QUIZ_TIPOS['tematico']['min']) return null;
-    $dific = array_key_exists($d['dificuldade'] ?? '', QUIZ_MULTIPLICADOR) ? $d['dificuldade'] : 'Médio';
-    return [
-        'titulo' => $cortar($d['titulo'] ?? $tema['tema'], 50), 'descricao' => $cortar($d['descricao'] ?? '', 150),
-        'categoria' => $tema['area'], 'xp' => IA_QUIZ_XP, 'credito' => IA_QUIZ_CREDITO, 'ativa' => false,
-        'dificuldade' => $dific, 'tipo' => 'tematico', 'perguntas' => $perguntas, 'noticias' => array_column($base, 'id'),
+    return ia_montar_quiz_validado($r['dados'], (int) $tema['area'], (string) $tema['tema'], $textos, $base, true);
+}
+
+/** Gera 1 quiz sobre um tema livre sugerido pelo administrador, sem depender de notícias RSS. */
+function ia_gerar_quiz_por_tema(string $temaSugerido, array $areas, ?int $areaSugerida = null): ?array
+{
+    $nomesAreas = implode('; ', array_map(static fn($id, $nome) => "{$id} = {$nome}", array_keys($areas), $areas));
+    $props = [
+        'titulo' => ['type' => 'string'], 'descricao' => ['type' => 'string'], 'dificuldade' => ['type' => 'string', 'enum' => array_keys(QUIZ_MULTIPLICADOR)],
+        'perguntas' => ['type' => 'array', 'items' => ['type' => 'object', 'properties' => [
+            'enunciado' => ['type' => 'string'], 'correta' => ['type' => 'integer'], 'explicacao' => ['type' => 'string'],
+            'alternativas' => ['type' => 'array', 'items' => ['type' => 'string']],
+        ], 'required' => ['enunciado', 'alternativas', 'correta', 'explicacao']]],
     ];
+    $req = ['titulo', 'descricao', 'dificuldade', 'perguntas'];
+    if ($areaSugerida === null) {
+        $props['area'] = ['type' => 'integer'];
+        $req[] = 'area';
+    }
+    $esquema = ['type' => 'object', 'properties' => $props, 'required' => $req];
+    $r = ia_chamar(
+        'Você cria quizzes educativos de educação ambiental em português do Brasil para jovens a partir de 13 anos. '
+        . 'Use SOMENTE conhecimento científico consolidado e fatos corretos. Nunca invente estatísticas, datas ou estudos falsos. Responda em JSON.',
+        "Tema sugerido pelo administrador: {$temaSugerido}\n"
+        . ($areaSugerida !== null ? "Área ambiental definida: {$areaSugerida} = {$areas[$areaSugerida]}\n\n" : "Áreas disponíveis do jogo: {$nomesAreas}\n\n")
+        . 'Crie um quiz com ' . IA_PERGUNTAS_GERADAS . " perguntas de múltipla escolha sobre o tema sugerido. Regras (obrigatórias):\n"
+        . "- TUDO em português do Brasil, inclusive as alternativas;\n"
+        . ($areaSugerida === null ? "- area: número do ID da área disponível acima que mais combina com o tema;\n" : '')
+        . "- titulo: até 45 caracteres; descricao: até 140 caracteres;\n"
+        . "- enunciado: até 140 caracteres, claro e autoexplicativo;\n"
+        . "- 4 alternativas de até 90 caracteres, sem letras ou números na frente (nada de \"A)\");\n"
+        . "- correta: posição (0 a 3) da alternativa VERDADEIRA; confira antes de responder e varie a posição;\n"
+        . "- explicacao: até 190 caracteres, explicando por que a resposta está certa e ligando o tema a uma atitude sustentável;\n"
+        . 'Pelo menos 2 perguntas sobre o que uma pessoa pode fazer no dia a dia (a alternativa correta é a atitude sustentável). '
+        . 'Perguntas claras, sem pegadinhas e sem "todas as anteriores".',
+        [], $esquema, 240
+    );
+    $areaId = $areaSugerida ?? (int) ($r['dados']['area'] ?? 0);
+    if (!isset($areas[$areaId])) $areaId = (int) array_key_first($areas);
+    $refConferencia = "Tema: {$temaSugerido} (área: {$areas[$areaId]}).";
+    return ia_montar_quiz_validado($r['dados'], $areaId, $temaSugerido, $refConferencia, [], false);
 }
 
 /**
- * Conferência: a IA responde de novo cada pergunta SEM ver o gabarito, só com as notícias.
+ * Conferência: a IA responde de novo cada pergunta SEM ver o gabarito, só com as notícias ou o tema.
  * Fica só a pergunta em que ela marca a mesma alternativa (descarta erro factual e gabarito trocado).
  */
-function ia_conferir_perguntas(array $perguntas, string $textos): array
+function ia_conferir_perguntas(array $perguntas, string $textos, bool $usarNoticias = true): array
 {
     if (!$perguntas) return [];
     $lista = implode("\n\n", array_map(static fn($i, $p) => 'Pergunta ' . ($i + 1) . ': ' . $p['enunciado'] . "\n"
@@ -185,12 +236,17 @@ function ia_conferir_perguntas(array $perguntas, string $textos): array
     $esquema = ['type' => 'object', 'properties' => ['respostas' => ['type' => 'array', 'items' => ['type' => 'object', 'properties' => [
         'pergunta' => ['type' => 'integer'], 'alternativa' => ['type' => 'integer'],
     ], 'required' => ['pergunta', 'alternativa']]]], 'required' => ['respostas']];
+    $pedidoConf = $usarNoticias
+        ? "Notícias de referência:\n{$textos}\n\nPara cada pergunta abaixo, escolha a alternativa correta (número) com base nas notícias "
+            . "e no conhecimento científico consolidado. Em perguntas sobre atitudes, a correta é a atitude sustentável. "
+            . "Se nenhuma alternativa estiver correta, responda -1.\n\n{$lista}"
+        : "Tema de referência: {$textos}\n\nPara cada pergunta abaixo, escolha a alternativa correta (número) com base no conhecimento científico consolidado "
+            . "sobre educação ambiental. Em perguntas sobre atitudes, a correta é a atitude sustentável. "
+            . "Se nenhuma alternativa estiver correta, responda -1.\n\n{$lista}";
     try {
         $r = ia_chamar(
             'Você é um revisor rigoroso de quizzes de educação ambiental. Responda em JSON.',
-            "Notícias de referência:\n{$textos}\n\nPara cada pergunta abaixo, escolha a alternativa correta (número) com base nas notícias "
-            . "e no conhecimento científico consolidado. Em perguntas sobre atitudes, a correta é a atitude sustentável. "
-            . "Se nenhuma alternativa estiver correta, responda -1.\n\n{$lista}",
+            $pedidoConf,
             [], $esquema, 240
         );
     } catch (IaIndisponivel) {
@@ -206,21 +262,52 @@ function ia_conferir_perguntas(array $perguntas, string $textos): array
 
 /**
  * Executa a geração completa. Devolve um resumo: { criados: [ {id, titulo} ], noticias: N, erros: [...] }.
- * Uma geração por vez (trava no banco).
+ * Uma geração por vez (trava no banco). Quando $temaSugerido está preenchido, cria 1 rascunho focado nele.
  */
-function gerar_quizzes_ia(): array
+function gerar_quizzes_ia(string $temaSugerido = '', ?int $areaSugerida = null): array
 {
+    $temaSugerido = ia_normalizar_tema($temaSugerido);
+    $areas = ia_areas();
+    if ($areaSugerida !== null && !isset($areas[$areaSugerida])) {
+        throw new RegistroInvalido('Área ambiental inválida.');
+    }
     if (!ia_disponivel()) throw new RegistroInvalido('A IA não está disponível no momento. Tente novamente em instantes.');
     $pdo = db();
     if ((int) $pdo->query("SELECT GET_LOCK('ecocity_quizzes_ia', 0)")->fetchColumn() !== 1) {
         throw new RegistroInvalido('Já existe uma geração de quizzes em andamento.');
     }
     try {
+        $salvarGerado = static function (array $quiz, string $rotulo, array &$resumo) use ($pdo): void {
+            salvar_quiz($quiz, $novoId);
+            $pdo->prepare("UPDATE quiz SET origem = 'ia', gerado_em = NOW() WHERE quiz_id = ?")->execute([$novoId]);
+            if ($quiz['noticias']) {
+                $ids = $quiz['noticias'];
+                $pdo->prepare('UPDATE noticia_ia SET usada_em = NOW(), quiz_id = ? WHERE noticia_ia_id IN (' . implode(',', array_fill(0, count($ids), '?')) . ')')
+                    ->execute([$novoId, ...$ids]);
+            }
+            $resumo['criados'][] = ['id' => $novoId, 'titulo' => $quiz['titulo']];
+        };
+
+        if ($temaSugerido !== '') {
+            $resumo = ['criados' => [], 'noticias' => 0, 'erros' => []];
+            try {
+                $quiz = ia_gerar_quiz_por_tema($temaSugerido, $areas, $areaSugerida);
+                if (!$quiz) {
+                    $resumo['erros'][] = "{$temaSugerido}: a IA não gerou perguntas válidas.";
+                } else {
+                    $salvarGerado($quiz, $temaSugerido, $resumo);
+                }
+            } catch (RegistroInvalido | IaIndisponivel $ex) {
+                $resumo['erros'][] = "{$temaSugerido}: " . $ex->getMessage();
+            }
+            return $resumo;
+        }
+
         $noticias = ia_coletar_noticias();
         if (count($noticias) < 2) throw new RegistroInvalido('Não há notícias novas suficientes (últimos ' . IA_NOTICIA_DIAS . ' dias).');
         $resumo = ['criados' => [], 'noticias' => count($noticias), 'erros' => []];
         try {
-            $temas = ia_escolher_temas($noticias, ia_areas());
+            $temas = ia_escolher_temas($noticias, $areas);
         } catch (IaIndisponivel $ex) {
             throw new RegistroInvalido('A IA não respondeu ao escolher os temas. Tente de novo em alguns minutos.');
         }
@@ -228,12 +315,7 @@ function gerar_quizzes_ia(): array
             try {
                 $quiz = ia_gerar_quiz($tema, $noticias);
                 if (!$quiz) { $resumo['erros'][] = "{$tema['tema']}: a IA não gerou perguntas válidas."; continue; }
-                salvar_quiz($quiz, $novoId);
-                $pdo->prepare("UPDATE quiz SET origem = 'ia', gerado_em = NOW() WHERE quiz_id = ?")->execute([$novoId]);
-                $ids = $quiz['noticias'];
-                $pdo->prepare('UPDATE noticia_ia SET usada_em = NOW(), quiz_id = ? WHERE noticia_ia_id IN (' . implode(',', array_fill(0, count($ids), '?')) . ')')
-                    ->execute([$novoId, ...$ids]);
-                $resumo['criados'][] = ['id' => $novoId, 'titulo' => $quiz['titulo']];
+                $salvarGerado($quiz, $tema['tema'], $resumo);
             } catch (RegistroInvalido | IaIndisponivel $ex) {
                 $resumo['erros'][] = "{$tema['tema']}: " . $ex->getMessage();
             }

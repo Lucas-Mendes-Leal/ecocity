@@ -844,3 +844,38 @@
 @media (max-width: 560px) {
     .conta-admin-row { flex-direction: column; align-items: stretch; }
 }
+
+/* Modal de escolha de geração com IA (automática ou tema sugerido) */
+dialog.ia-gen-dialog {
+    margin: auto;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg, 16px);
+    padding: 22px;
+    width: min(500px, calc(100vw - 24px));
+    max-width: none;
+    background: var(--surface-card, #fff);
+    color: var(--text-color);
+    box-shadow: 0 20px 44px rgba(16, 40, 22, 0.22);
+}
+dialog.ia-gen-dialog::backdrop {
+    background: rgba(16, 36, 20, 0.55);
+    backdrop-filter: blur(2px);
+}
+.ia-gen-topo { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.ia-gen-topo h4 { margin: 0; font-size: 18px; color: var(--primary-color); }
+.ia-gen-fechar { border: 0; background: transparent; color: var(--text-muted); font-size: 22px; line-height: 1; padding: 4px 8px; border-radius: var(--radius-sm); cursor: pointer; }
+.ia-gen-fechar:hover { background: var(--green-soft); color: var(--text-green); }
+.ia-gen-opcoes { display: grid; gap: 10px; margin-bottom: 14px; }
+.ia-gen-opcao { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border: 1.5px solid var(--border-color); border-radius: var(--radius-sm); cursor: pointer; background: #fafcfa; transition: border-color .15s, background .15s; }
+.ia-gen-opcao input[type="radio"] { margin-top: 3px; accent-color: var(--primary-color); flex-shrink: 0; }
+.ia-gen-opcao:hover { border-color: var(--primary-color); }
+.ia-gen-opcao.is-selected { border-color: var(--primary-color); background: var(--green-soft); }
+.ia-gen-opcao-txt { display: flex; flex-direction: column; gap: 3px; }
+.ia-gen-opcao-txt strong { font-size: 14px; color: var(--text-color); }
+.ia-gen-opcao-txt small { font-size: 13px; color: var(--text-muted); line-height: 1.38; }
+.ia-gen-tema-box { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border: 1px dashed var(--border-color); border-radius: var(--radius-sm); background: #fff; margin-bottom: 16px; }
+.ia-gen-tema-box[hidden] { display: none; }
+.ia-gen-tema-box .form-group { margin-bottom: 0; }
+.ia-gen-erro { margin: 0; font-size: 13px; font-weight: 600; color: var(--danger-color); }
+.ia-gen-erro[hidden] { display: none; }
+.ia-gen-dialog .modal-actions { margin-top: 6px; display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }

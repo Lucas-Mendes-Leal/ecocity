@@ -106,12 +106,14 @@ function ia_nome_unico_missao(string $bruto, array &$usados, DateTimeImmutable $
  * Gera missões semanais e/ou oficiais de comunidade como rascunhos desativados para a semana atual (segunda a domingo).
  * @param string $escopo 'missao' | 'cmissao' | 'todas'
  * @param bool $pularSeJaGerou quando true (agendador), não repete se a semana atual já tiver os rascunhos da IA
+ * @param string $temaSugerido tema livre opcional informado pelo administrador para orientar a geração
  */
-function gerar_missoes_ia(string $escopo = 'todas', bool $pularSeJaGerou = false): array
+function gerar_missoes_ia(string $escopo = 'todas', bool $pularSeJaGerou = false, string $temaSugerido = ''): array
 {
     if (!in_array($escopo, ['missao', 'cmissao', 'todas'], true)) {
         throw new RegistroInvalido('Escopo inválido para geração de missões.');
     }
+    $temaSugerido = ia_normalizar_tema($temaSugerido);
     if (!ia_disponivel()) {
         throw new RegistroInvalido('A IA não está disponível no momento. Tente novamente em instantes.');
     }
@@ -134,7 +136,7 @@ function gerar_missoes_ia(string $escopo = 'todas', bool $pularSeJaGerou = false
         // 1) Missões semanais (2 rascunhos para segunda..domingo)
         if ($escopo === 'missao' || $escopo === 'todas') {
             $jaTemSemanais = false;
-            if ($pularSeJaGerou && $bancoPronto) {
+            if ($pularSeJaGerou && $temaSugerido === '' && $bancoPronto) {
                 $q = $pdo->prepare("SELECT COUNT(*) FROM missao WHERE origem = 'ia' AND data_inicio = ? AND data_fim = ?");
                 $q->execute([$segunda, $domingo]);
                 $jaTemSemanais = ((int) $q->fetchColumn() >= IA_MISSOES_SEMANAIS_QTD);
@@ -186,6 +188,10 @@ function gerar_missoes_ia(string $escopo = 'todas', bool $pularSeJaGerou = false
                         . "Atividades disponíveis:\n" . implode("\n", $linhasAtividades) . "\n\n"
                         . "Missões recentes ou fixas (NÃO repita nomes nem copie exatamente as mesmas metas):\n"
                         . ($linhasRecentes ? implode("\n", $linhasRecentes) : '(nenhuma)') . "\n\n"
+                        . ($temaSugerido !== ''
+                            ? "Tema sugerido pelo administrador (OBRIGATÓRIO): \"{$temaSugerido}\".\n"
+                                . "Priorize atividades disponíveis que se relacionem com esse tema e reflita o tema no nome e na descrição das missões.\n\n"
+                            : '')
                         . 'Crie EXATAMENTE ' . IA_MISSOES_SEMANAIS_QTD . " missões semanais extras:\n"
                         . "- nome: título curto, criativo e claro em PT-BR (5 a 60 caracteres), diferente dos listados acima.\n"
                         . "- descricao: 1 frase curta incentivando o jogador (15 a 180 caracteres).\n"
@@ -258,7 +264,7 @@ function gerar_missoes_ia(string $escopo = 'todas', bool $pularSeJaGerou = false
         // 2) Missão oficial de comunidade (1 rascunho semanal para segunda..domingo)
         if ($escopo === 'cmissao' || $escopo === 'todas') {
             $jaTemComunidade = false;
-            if ($pularSeJaGerou && $bancoPronto) {
+            if ($pularSeJaGerou && $temaSugerido === '' && $bancoPronto) {
                 $q = $pdo->prepare("SELECT COUNT(*) FROM comunidade_missao WHERE comunidade_id IS NULL AND origem = 'ia' AND data_inicio = ? AND data_fim = ?");
                 $q->execute([$segunda, $domingo]);
                 $jaTemComunidade = ((int) $q->fetchColumn() >= IA_MISSOES_COMUNIDADE_QTD);
@@ -312,6 +318,10 @@ function gerar_missoes_ia(string $escopo = 'todas', bool $pularSeJaGerou = false
                         . "Atividades elegíveis e faixas realistas para 30 jogadores numa semana:\n" . implode("\n", $linhasCm) . "\n\n"
                         . "Missões coletivas recentes (varie o tema/atividade e não repita nomes):\n"
                         . ($linhasRecCm ? implode("\n", $linhasRecCm) : '(nenhuma)') . "\n\n"
+                        . ($temaSugerido !== ''
+                            ? "Tema sugerido pelo administrador (OBRIGATÓRIO): \"{$temaSugerido}\".\n"
+                                . "Escolha a atividade elegível mais alinhada a esse tema e reflita o tema no nome e na descrição da missão.\n\n"
+                            : '')
                         . 'Crie EXATAMENTE ' . IA_MISSOES_COMUNIDADE_QTD . " missão oficial de comunidade:\n"
                         . "- nome: nome inspirador e diferente dos anteriores (5 a 60 caracteres).\n"
                         . "- descricao: 1 frase curta explicando a meta coletiva em impacto real (15 a 180 caracteres).\n"

@@ -1067,6 +1067,175 @@ async function executar(fn) {
     }
 }
 
+const CFG_GERAR_IA = {
+    quiz: {
+        titulo: 'Gerar quizzes com IA',
+        icone: 'help',
+        autoTitulo: 'Gerar automaticamente',
+        autoDesc: 'A IA lê notícias ambientais recentes (últimos 14 dias) e cria até 3 quizzes como rascunho (desativados), em segundo plano (5 a 15 minutos).',
+        temaTitulo: 'Sugerir um tema',
+        temaDesc: 'A IA cria 1 quiz como rascunho (desativado) focado no tema informado abaixo, também em segundo plano.',
+        temaPlaceholder: 'Ex.: Economia circular, enchentes urbanas, energia solar…',
+        temArea: true,
+        btnCarregando: 'Iniciando…',
+    },
+    missao: {
+        titulo: 'Gerar missões com IA',
+        icone: 'clipboard',
+        autoTitulo: 'Gerar automaticamente',
+        autoDesc: 'A IA cria 2 missões semanais variadas como rascunho (desativadas) para esta semana, combinando atividades do catálogo.',
+        temaTitulo: 'Sugerir um tema',
+        temaDesc: 'A IA cria 2 missões semanais como rascunho priorizando atividades ligadas ao tema sugerido.',
+        temaPlaceholder: 'Ex.: Economia de água, reciclagem em casa, transporte sustentável…',
+        temArea: false,
+        btnCarregando: 'Gerando…',
+    },
+    cmissao: {
+        titulo: 'Gerar missão de comunidade com IA',
+        icone: 'flag',
+        autoTitulo: 'Gerar automaticamente',
+        autoDesc: 'A IA cria 1 missão coletiva oficial como rascunho (desativada) para a semana atual, variando em relação às recentes.',
+        temaTitulo: 'Sugerir um tema',
+        temaDesc: 'A IA cria 1 missão coletiva oficial como rascunho alinhada ao tema informado abaixo.',
+        temaPlaceholder: 'Ex.: Mutirão de reciclagem, redução do consumo de energia…',
+        temArea: false,
+        btnCarregando: 'Gerando…',
+    },
+};
+
+function abrirModalGerarIa(tipo, btnOrigem) {
+    const cfg = CFG_GERAR_IA[tipo];
+    if (!cfg) return;
+    document.querySelectorAll('dialog.ia-gen-dialog').forEach((el) => el.remove());
+
+    const dialog = document.createElement('dialog');
+    dialog.className = 'ia-gen-dialog';
+    dialog.setAttribute('aria-labelledby', 'ia-gen-titulo');
+    dialog.innerHTML = `<form class="ia-gen-form" method="dialog" novalidate>
+        <div class="ia-gen-topo">
+            <h4 id="ia-gen-titulo">${escapeHTML(cfg.titulo)}</h4>
+            <button type="button" class="ia-gen-fechar" aria-label="Fechar" data-ia-fechar>×</button>
+        </div>
+        <div class="ia-gen-opcoes">
+            <label class="ia-gen-opcao is-selected">
+                <input type="radio" name="modo_ia" value="auto" checked>
+                <div class="ia-gen-opcao-txt">
+                    <strong>${escapeHTML(cfg.autoTitulo)}</strong>
+                    <small>${escapeHTML(cfg.autoDesc)}</small>
+                </div>
+            </label>
+            <label class="ia-gen-opcao">
+                <input type="radio" name="modo_ia" value="tema">
+                <div class="ia-gen-opcao-txt">
+                    <strong>${escapeHTML(cfg.temaTitulo)}</strong>
+                    <small>${escapeHTML(cfg.temaDesc)}</small>
+                </div>
+            </label>
+        </div>
+        <div class="ia-gen-tema-box" hidden>
+            <div class="form-group">
+                <label>Tema sugerido
+                    <input class="form-input" type="text" name="tema" minlength="3" maxlength="150" placeholder="${escapeHTML(cfg.temaPlaceholder)}">
+                </label>
+                <small class="form-hint">De 3 a 150 caracteres. O item é salvo desativado como rascunho para revisão.</small>
+            </div>
+            ${cfg.temArea ? `<div class="form-group">
+                <label>Área ambiental (opcional)
+                    <select class="form-input" name="area">
+                        <option value="">Escolher área automaticamente</option>
+                        ${opcoes(categorias(), '')}
+                    </select>
+                </label>
+            </div>` : ''}
+            <p class="ia-gen-erro" role="alert" hidden></p>
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-outline" data-ia-cancelar>Cancelar</button>
+            <button type="submit" class="btn btn-primary" data-ia-confirmar>${icon(cfg.icone)} Gerar com IA</button>
+        </div>
+    </form>`;
+
+    document.body.appendChild(dialog);
+    hydrateIcons(dialog);
+
+    const form = dialog.querySelector('form');
+    const temaBox = dialog.querySelector('.ia-gen-tema-box');
+    const temaInput = dialog.querySelector('input[name="tema"]');
+    const areaSelect = dialog.querySelector('select[name="area"]');
+    const erroEl = dialog.querySelector('.ia-gen-erro');
+    const cards = Array.from(dialog.querySelectorAll('.ia-gen-opcao'));
+
+    const atualizarModo = () => {
+        const modo = form.elements.modo_ia.value;
+        const ehTema = modo === 'tema';
+        cards.forEach((c) => c.classList.toggle('is-selected', c.querySelector('input')?.checked));
+        temaBox.hidden = !ehTema;
+        erroEl.hidden = true;
+        erroEl.textContent = '';
+        if (ehTema) temaInput.focus();
+    };
+
+    form.querySelectorAll('input[name="modo_ia"]').forEach((r) => r.addEventListener('change', atualizarModo));
+    temaInput.addEventListener('input', () => {
+        if (!erroEl.hidden) {
+            erroEl.hidden = true;
+            erroEl.textContent = '';
+        }
+    });
+    dialog.querySelector('[data-ia-fechar]').addEventListener('click', () => dialog.close());
+    dialog.querySelector('[data-ia-cancelar]').addEventListener('click', () => dialog.close());
+    dialog.addEventListener('click', (ev) => {
+        if (ev.target === dialog) dialog.close();
+    });
+    dialog.addEventListener('close', () => dialog.remove());
+
+    form.addEventListener('submit', (ev) => {
+        ev.preventDefault();
+        const modo = form.elements.modo_ia.value;
+        const tema = temaInput.value.replace(/\s+/g, ' ').trim();
+        if (modo === 'tema' && (tema.length < 3 || tema.length > 150)) {
+            erroEl.textContent = 'Informe um tema entre 3 e 150 caracteres.';
+            erroEl.hidden = false;
+            temaInput.focus();
+            return;
+        }
+        const area = modo === 'tema' && areaSelect ? areaSelect.value : '';
+        dialog.close();
+
+        const htmlOriginal = btnOrigem ? btnOrigem.innerHTML : '';
+        if (btnOrigem) {
+            btnOrigem.disabled = true;
+            btnOrigem.textContent = cfg.btnCarregando;
+        }
+        executar(async () => {
+            try {
+                if (tipo === 'quiz') {
+                    const payload = { acao: 'gerar_ia' };
+                    if (modo === 'tema') {
+                        payload.tema = tema;
+                        if (area) payload.area = area;
+                    }
+                    await api(payload);
+                    definirFiltro('conteudo-quiz', 'rascunho');
+                } else {
+                    const payload = { acao: 'gerar_missoes_ia', escopo: tipo };
+                    if (modo === 'tema') payload.tema = tema;
+                    await api(payload);
+                    definirFiltro(`conteudo-${tipo}`, 'rascunho');
+                }
+            } finally {
+                if (btnOrigem?.isConnected) {
+                    btnOrigem.disabled = false;
+                    btnOrigem.innerHTML = htmlOriginal;
+                    hydrateIcons(btnOrigem);
+                }
+            }
+        });
+    });
+
+    dialog.showModal();
+}
+
 function ligarEventos() {
     st.raiz.addEventListener('click', (e) => {
         const b = e.target.closest('button');
@@ -1216,23 +1385,11 @@ function ligarEventos() {
             return;
         }
         if (b.hasAttribute('data-gerar-ia')) {
-            if (!confirm('A IA vai ler as notícias ambientais dos últimos 14 dias e criar até 3 quizzes como rascunho (desativados). Leva de 5 a 15 minutos e roda em segundo plano: você pode continuar usando a administração. Continuar?')) return;
-            b.disabled = true;
-            b.textContent = 'Iniciando…';
-            executar(async () => {
-                await api({ acao: 'gerar_ia' });
-                definirFiltro('conteudo-quiz', 'rascunho');
-            });
+            abrirModalGerarIa('quiz', b);
             return;
         }
         if (b.hasAttribute('data-gerar-missoes-ia')) {
-            const escopo = b.dataset.gerarMissoesIa;
-            b.disabled = true;
-            b.textContent = 'Gerando…';
-            executar(async () => {
-                await api({ acao: 'gerar_missoes_ia', escopo });
-                definirFiltro(`conteudo-${st.secao}`, 'rascunho');
-            });
+            abrirModalGerarIa(b.dataset.gerarMissoesIa, b);
             return;
         }
         if (b.hasAttribute('data-cancelar')) { st.editando = null; render(); return; }

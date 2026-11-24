@@ -346,3 +346,16 @@ function ia_pareceres(array $registroIds): array
     }
     return $out;
 }
+
+/** Normaliza e valida um tema livre opcional informado pelo administrador para geração de conteúdo com IA. */
+function ia_normalizar_tema(string $bruto): string
+{
+    $tema = trim(preg_replace('/\s+/u', ' ', $bruto) ?? '');
+    if ($tema !== '') {
+        $len = mb_strlen($tema, 'UTF-8');
+        if ($len < 3 || $len > 150) {
+            throw new RegistroInvalido('Informe um tema entre 3 e 150 caracteres.');
+        }
+    }
+    return $tema;
+}
